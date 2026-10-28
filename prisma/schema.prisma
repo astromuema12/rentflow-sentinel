@@ -1,0 +1,378 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Multi-tenant core
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  currency  String   @default("KES")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships              OrganizationMembership[]
+  importBatches            ImportBatch[]
+  importedSourceRecords    ImportedSourceRecord[]
+  normalizedTransactions   NormalizedTransaction[]
+  reconciliationRuns       ReconciliationRun[]
+  reconciliationExceptions ReconciliationException[]
+  humanReviewDecisions     HumanReviewDecision[]
+  auditEvents              AuditEvent[]
+
+  @@index([slug])
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  firstName      String?
+  lastName       String?
+  isActive       Boolean  @default(true)
+  sessionVersion Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  memberships         OrganizationMembership[]
+  reviewDecisions     HumanReviewDecision[]
+  auditEvents         AuditEvent[]             @relation("AuditActor")
+  passwordResetTokens PasswordResetToken[]
+}
+
+model AuthRateLimit {
+  key             String   @id
+  attempts        Int      @default(0)
+  windowStartedAt DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([windowStartedAt])
+}
+
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model OrganizationMembership {
+  id             String         @id @default(cuid())
+  organizationId String
+  userId         String
+  role           MembershipRole @default(VIEWER)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+// Imports
+enum ImportBatchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  PARTIALLY_COMPLETED
+}
+
+model ImportBatch {
+  id             String            @id @default(cuid())
+  organizationId String
+  uploadedById   String?
+  filename       String
+  sourceType     String
+  status         ImportBatchStatus @default(PENDING)
+  checksum       String?
+  metadata       Json?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  importedRecords        ImportedSourceRecord[]
+  normalizedTransactions NormalizedTransaction[]
+  reconciliationRuns     ReconciliationRun[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ImportedSourceRecord {
+  id              String   @id @default(cuid())
+  organizationId  String
+  importBatchId   String
+  externalId      String?
+  rowHash         String
+  rawData         Json
+  currency        String   @default("KES")
+  amount          Decimal  @db.Decimal(19, 4)
+  transactionDate DateTime @db.Date
+  description     String?
+  reference       String?
+  payerPayee      String?
+  processed       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization          Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  importBatch           ImportBatch            @relation(fields: [importBatchId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  normalizedTransaction NormalizedTransaction?
+
+  @@unique([importBatchId, rowHash])
+  @@unique([id, organizationId])
+  @@index([organizationId])
+  @@index([importBatchId])
+  @@index([importBatchId, organizationId])
+  @@index([transactionDate])
+  @@index([externalId])
+}
+
+// Normalized financial transactions
+enum TransactionType {
+  DEBIT
+  CREDIT
+}
+
+enum TransactionStatus {
+  UNRECONCILED
+  MATCHED
+  EXCLUDED
+  RECONCILED
+}
+
+model NormalizedTransaction {
+  id                     String            @id @default(cuid())
+  organizationId         String
+  importBatchId          String?
+  importedSourceRecordId String?           @unique
+  externalId             String?
+  type                   TransactionType
+  amount                 Decimal           @db.Decimal(19, 4)
+  currency               String            @default("KES")
+  transactionDate        DateTime          @db.Date
+  valueDate              DateTime?         @db.Date
+  description            String?
+  reference              String?
+  payerPayee             String?
+  status                 TransactionStatus @default(UNRECONCILED)
+  sourceProvenance       Json?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  organization             Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  importBatch              ImportBatch?               @relation(fields: [importBatchId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  importedSourceRecord     ImportedSourceRecord?      @relation(fields: [importedSourceRecordId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  proposedMatches          ProposedTransactionMatch[]
+  reconciliationExceptions ReconciliationException[]
+  reviewDecisions          HumanReviewDecision[]
+
+  @@unique([id, organizationId])
+  @@unique([importedSourceRecordId, organizationId])
+  @@index([organizationId])
+  @@index([importBatchId])
+  @@index([importBatchId, organizationId])
+  @@index([status])
+  @@index([transactionDate])
+  @@index([externalId])
+}
+
+// Reconciliation
+enum ReconciliationRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model ReconciliationRun {
+  id             String                  @id @default(cuid())
+  organizationId String
+  importBatchId  String?
+  runById        String?
+  status         ReconciliationRunStatus @default(PENDING)
+  algorithm      String?
+  parameters     Json?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  summary        Json?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  organization    Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  importBatch     ImportBatch?               @relation(fields: [importBatchId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  proposedMatches ProposedTransactionMatch[]
+  exceptions      ReconciliationException[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum MatchConfidence {
+  LOW
+  MEDIUM
+  HIGH
+  EXACT
+}
+
+enum MatchStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+  AUTO_ACCEPTED
+  EXPIRED
+}
+
+model ProposedTransactionMatch {
+  id                      String          @id @default(cuid())
+  organizationId          String
+  reconciliationRunId     String
+  normalizedTransactionId String
+  candidateId             String
+  confidence              MatchConfidence @default(MEDIUM)
+  score                   Decimal?        @db.Decimal(5, 4)
+  matchCriteria           Json?
+  status                  MatchStatus     @default(PROPOSED)
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  reconciliationRun     ReconciliationRun     @relation(fields: [reconciliationRunId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  normalizedTransaction NormalizedTransaction @relation(fields: [normalizedTransactionId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([reconciliationRunId, normalizedTransactionId, candidateId])
+  @@index([organizationId])
+  @@index([reconciliationRunId])
+  @@index([normalizedTransactionId])
+  @@index([status])
+}
+
+enum ExceptionType {
+  AMOUNT_MISMATCH
+  DATE_OUT_OF_RANGE
+  DUPLICATE_CANDIDATE
+  UNMATCHABLE
+  MISSING_REFERENCE
+  OTHER
+}
+
+enum ExceptionStatus {
+  OPEN
+  RESOLVED
+  IGNORED
+}
+
+model ReconciliationException {
+  id                      String          @id @default(cuid())
+  organizationId          String
+  reconciliationRunId     String
+  normalizedTransactionId String
+  exceptionType           ExceptionType
+  status                  ExceptionStatus @default(OPEN)
+  details                 Json?
+  resolutionNotes         String?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  reconciliationRun     ReconciliationRun     @relation(fields: [reconciliationRunId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  normalizedTransaction NormalizedTransaction @relation(fields: [normalizedTransactionId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  organization          Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([reconciliationRunId])
+  @@index([normalizedTransactionId])
+  @@index([status])
+}
+
+enum ReviewDecisionType {
+  ACCEPT_MATCH
+  REJECT_MATCH
+  CREATE_ADJUSTMENT
+  EXCLUDE
+  MANUAL_MATCH
+  COMMENT
+}
+
+model HumanReviewDecision {
+  id                      String             @id @default(cuid())
+  organizationId          String
+  normalizedTransactionId String
+  reviewedById            String
+  decisionType            ReviewDecisionType
+  rationale               String?
+  decisionMetadata        Json?
+  createdAt               DateTime           @default(now())
+
+  normalizedTransaction NormalizedTransaction @relation(fields: [normalizedTransactionId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  reviewedBy            User                  @relation(fields: [reviewedById], references: [id], onDelete: Restrict)
+  organization          Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([normalizedTransactionId])
+  @@index([reviewedById])
+  @@index([createdAt])
+}
+
+// Audit
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  IMPORT
+  RECONCILE
+  REVIEW
+  LOGIN
+  LOGOUT
+  ACCESS_DENIED
+  OTHER
+}
+
+model AuditEvent {
+  id             String      @id @default(cuid())
+  organizationId String?
+  actorId        String?
+  action         AuditAction
+  entityType     String
+  entityId       String?
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?
+  occurredAt     DateTime    @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  actor        User?         @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType])
+  @@index([occurredAt])
+}
