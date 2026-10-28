@@ -15,10 +15,12 @@ vi.mock("@/lib/auth/rate-limit", () => ({
 }));
 
 import bcrypt from "bcryptjs";
-import { MembershipRole } from "@prisma/client";
+import { MembershipRole, UserAccountType } from "@prisma/client";
 import {
   requireAuthenticatedUser,
   requireOrganizationAccess,
+  requirePlatformAdmin,
+  requireRenter,
 } from "@/lib/auth/authorization";
 import { authorizeCredentials } from "@/lib/auth/credentials";
 import { consumePasswordResetToken } from "@/lib/auth/password-reset";
@@ -26,9 +28,18 @@ import { GET as exportTransactions } from "@/app/api/organizations/[organization
 import { GET as getImportRecord } from "@/app/api/organizations/[organizationId]/imports/[importBatchId]/records/[recordId]/route";
 import { PATCH as updateMembership } from "@/app/api/organizations/[organizationId]/memberships/[membershipId]/route";
 import { PATCH as updateTransaction } from "@/app/api/organizations/[organizationId]/transactions/[transactionId]/route";
+import { POST as saveRental } from "@/app/api/rentals/[listingId]/save/route";
+import { POST as registerRenter } from "@/app/api/auth/renter-registration/route";
+import { PATCH as reviewRental } from "@/app/api/admin/listings/[listingId]/route";
+import { PATCH as updateAdminAccount } from "@/app/api/admin/users/[userId]/route";
 
 const database = {
-  user: { findUnique: vi.fn(), update: vi.fn() },
+  user: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    create: vi.fn(),
+  },
   organizationMembership: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
@@ -46,16 +57,26 @@ const database = {
     updateMany: vi.fn(),
   },
   auditEvent: { create: vi.fn() },
+  rentalListing: {
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  savedRentalListing: { upsert: vi.fn(), deleteMany: vi.fn() },
   $transaction: vi.fn(),
 };
 
-function authenticate(role: MembershipRole = MembershipRole.OPERATOR) {
+function authenticate(
+  role: MembershipRole = MembershipRole.OPERATOR,
+  accountType: UserAccountType = UserAccountType.LANDLORD,
+) {
   mocks.auth.mockResolvedValue({
     user: { id: "user-a", sessionVersion: 4, email: "a@example.test" },
   });
   database.user.findUnique.mockResolvedValue({
     id: "user-a",
     email: "a@example.test",
+    accountType,
     isActive: true,
     sessionVersion: 4,
   });
@@ -221,6 +242,198 @@ describe("server authentication and organization authorization", () => {
     await expect(
       requireOrganizationAccess("org-a", MembershipRole.VIEWER),
     ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("keeps renter, landlord, and platform-admin access separate", async () => {
+    authenticate(MembershipRole.OWNER, UserAccountType.LANDLORD);
+    await expect(requireRenter()).rejects.toMatchObject({ status: 403 });
+    await expect(requirePlatformAdmin()).rejects.toMatchObject({ status: 403 });
+
+    authenticate(MembershipRole.OWNER, UserAccountType.RENTER);
+    await expect(requireRenter()).resolves.toMatchObject({
+      accountType: UserAccountType.RENTER,
+    });
+    await expect(requireOrganizationAccess("org-a")).rejects.toMatchObject({
+      status: 403,
+    });
+
+    authenticate(MembershipRole.OWNER, UserAccountType.PLATFORM_ADMIN);
+    await expect(requirePlatformAdmin()).resolves.toMatchObject({
+      accountType: UserAccountType.PLATFORM_ADMIN,
+    });
+    await expect(requireOrganizationAccess("org-a")).rejects.toMatchObject({
+      status: 403,
+    });
+  });
+
+  it("saves only published homes to the signed-in renter's account", async () => {
+    authenticate(MembershipRole.VIEWER, UserAccountType.RENTER);
+    database.rentalListing.findFirst.mockResolvedValue({ id: "listing-a" });
+    database.savedRentalListing.upsert.mockResolvedValue({});
+
+    const response = await saveRental(
+      new Request("http://localhost/api/rentals/listing-a/save", {
+        method: "POST",
+        headers: { Origin: "http://localhost:3000" },
+      }),
+      routeParams({ listingId: "listing-a" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(database.rentalListing.findFirst).toHaveBeenCalledWith({
+      where: { id: "listing-a", status: "PUBLISHED" },
+      select: { id: true },
+    });
+    expect(database.savedRentalListing.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId_listingId: { userId: "user-a", listingId: "listing-a" },
+        },
+      }),
+    );
+
+    authenticate(MembershipRole.OWNER, UserAccountType.LANDLORD);
+    const denied = await saveRental(
+      new Request("http://localhost/api/rentals/listing-a/save", {
+        method: "POST",
+        headers: { Origin: "http://localhost:3000" },
+      }),
+      routeParams({ listingId: "listing-a" }),
+    );
+    expect(denied.status).toBe(403);
+  });
+
+  it("creates renter accounts with renter-only access", async () => {
+    database.user.create.mockResolvedValue({ id: "new-renter" });
+    const response = await registerRenter(
+      new Request("http://localhost/api/auth/renter-registration", {
+        method: "POST",
+        headers: {
+          Origin: "http://localhost:3000",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: "Tenant@Example.test",
+          password: "a-secure-renter-password",
+          firstName: "Amina",
+          lastName: "Njoroge",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(database.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          email: "tenant@example.test",
+          accountType: UserAccountType.RENTER,
+        }),
+      }),
+    );
+    expect(database.user.create.mock.calls[0][0].data.passwordHash).not.toBe(
+      "a-secure-renter-password",
+    );
+  });
+
+  it("does not grant platform listing review to organization owners", async () => {
+    authenticate(MembershipRole.OWNER, UserAccountType.LANDLORD);
+    const response = await reviewRental(
+      new Request("http://localhost/api/admin/listings/listing-a", {
+        method: "PATCH",
+        headers: {
+          Origin: "http://localhost:3000",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "PUBLISHED" }),
+      }),
+      routeParams({ listingId: "listing-a" }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(database.rentalListing.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("audits account suspension performed by a platform admin", async () => {
+    authenticate(MembershipRole.OWNER, UserAccountType.PLATFORM_ADMIN);
+    database.user.findUnique
+      .mockResolvedValueOnce({
+        id: "user-a",
+        email: "a@example.test",
+        accountType: UserAccountType.PLATFORM_ADMIN,
+        isActive: true,
+        sessionVersion: 4,
+      })
+      .mockResolvedValueOnce({
+        accountType: UserAccountType.RENTER,
+        isActive: true,
+      });
+    database.user.updateMany.mockResolvedValue({ count: 1 });
+
+    const response = await updateAdminAccount(
+      new Request("http://localhost/api/admin/users/renter-a", {
+        method: "PATCH",
+        headers: {
+          Origin: "http://localhost:3000",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isActive: false }),
+      }),
+      routeParams({ userId: "renter-a" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(database.user.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: "renter-a",
+          accountType: UserAccountType.RENTER,
+          isActive: true,
+        },
+      }),
+    );
+    expect(database.auditEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          actorId: "user-a",
+          entityType: "User",
+          entityId: "renter-a",
+        }),
+      }),
+    );
+  });
+
+  it("audits platform review of a rental listing", async () => {
+    authenticate(MembershipRole.OWNER, UserAccountType.PLATFORM_ADMIN);
+    database.rentalListing.findUnique.mockResolvedValue({
+      organizationId: "org-a",
+      status: "PENDING_REVIEW",
+      updatedAt: new Date("2026-10-28T10:00:00.000Z"),
+    });
+    database.rentalListing.updateMany.mockResolvedValue({ count: 1 });
+
+    const response = await reviewRental(
+      new Request("http://localhost/api/admin/listings/listing-a", {
+        method: "PATCH",
+        headers: {
+          Origin: "http://localhost:3000",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "PUBLISHED" }),
+      }),
+      routeParams({ listingId: "listing-a" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(database.auditEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          organizationId: "org-a",
+          actorId: "user-a",
+          entityType: "RentalListing",
+          entityId: "listing-a",
+        }),
+      }),
+    );
   });
 
   it("uses bcrypt hashes for credential verification and rejects invalid credentials", async () => {

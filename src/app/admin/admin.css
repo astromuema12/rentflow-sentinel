@@ -1,0 +1,270 @@
+.admin-dashboard-page {
+  min-height: 100vh;
+  padding: 28px clamp(18px, 5vw, 72px) 70px;
+  background: #f7f6f0;
+}
+
+.admin-dashboard-header,
+.admin-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.admin-dashboard-header {
+  max-width: 1280px;
+  margin: 0 auto;
+  border-bottom: 1px solid #e4e4da;
+  padding-bottom: 18px;
+}
+
+.admin-dashboard-header .dashboard-sign-out {
+  border: 1px solid #dfe7e1;
+  border-radius: 7px;
+  background: white;
+  padding: 9px 12px;
+  color: #245d43;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-dashboard-content,
+.admin-dashboard-heading {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+}
+
+.admin-dashboard-heading {
+  margin-top: 42px;
+  margin-bottom: 26px;
+}
+
+.admin-dashboard-heading h1 {
+  margin: 7px 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 500;
+  letter-spacing: -1.5px;
+}
+
+.admin-dashboard-heading p:not(.eyebrow) {
+  color: #687269;
+  line-height: 1.6;
+}
+
+.admin-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 1280px;
+  margin: 0 auto 22px;
+}
+
+.admin-metric {
+  border: 1px solid #e4e4da;
+  border-radius: 10px;
+  background: white;
+  padding: 18px;
+}
+
+.admin-metric span,
+.admin-table small {
+  display: block;
+  color: #687269;
+  font-size: 11px;
+}
+
+.admin-metric strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 27px;
+}
+
+.admin-panel {
+  margin-bottom: 20px;
+  border: 1px solid #e4e4da;
+  border-radius: 12px;
+  background: white;
+  padding: 20px;
+}
+
+.admin-section-heading {
+  margin-bottom: 15px;
+}
+
+.admin-section-heading h2 {
+  margin: 5px 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 26px;
+  font-weight: 500;
+}
+
+.admin-section-heading > span {
+  color: #687269;
+  font-size: 12px;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th,
+.admin-table td {
+  border-top: 1px solid #ecece4;
+  padding: 13px 10px;
+  vertical-align: top;
+  font-size: 12px;
+}
+
+.admin-table th {
+  color: #687269;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.admin-table td:first-child {
+  min-width: 180px;
+}
+
+.admin-table td strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.admin-table td small + small {
+  margin-top: 3px;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-actions button,
+.admin-table td > button {
+  min-height: 31px;
+  border: 1px solid #dfe7e1;
+  border-radius: 6px;
+  background: #edf1e8;
+  padding: 0 9px;
+  color: #174630;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-actions .admin-action-danger,
+.admin-table td > button.admin-action-danger {
+  border-color: #efdbd8;
+  background: #fff3f1;
+  color: #963f32;
+}
+
+.admin-protected-account {
+  color: #687269;
+  font-size: 11px;
+}
+
+.admin-empty {
+  color: #687269;
+  font-size: 13px;
+}
+
+.admin-message {
+  border-radius: 7px;
+  background: #edf7f1;
+  padding: 10px;
+  color: #276344;
+}
+
+.admin-message.is-error {
+  background: #fff3f1;
+  color: #963f32;
+}
+
+.admin-rejection-form {
+  display: grid;
+  gap: 7px;
+  min-width: 180px;
+  margin-top: 8px;
+}
+
+.admin-rejection-form label {
+  display: grid;
+  gap: 5px;
+  color: #687269;
+  font-size: 10px;
+}
+
+.admin-rejection-form input {
+  min-height: 32px;
+  border: 1px solid #dfe7e1;
+  border-radius: 5px;
+  padding: 6px;
+  font: inherit;
+}
+
+.admin-rejection-form button {
+  min-height: 29px;
+  border: 1px solid #dfe7e1;
+  border-radius: 5px;
+  background: white;
+  color: #37463c;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.listing-status {
+  display: inline-block;
+  border-radius: 20px;
+  background: #edf1e8;
+  padding: 5px 9px;
+  color: #245d43;
+  font-size: 9px;
+  font-weight: 750;
+  text-transform: capitalize;
+}
+
+.listing-status--rejected,
+.listing-status--paused {
+  background: #fff3f1;
+  color: #963f32;
+}
+
+.listing-status--published {
+  background: #edf7f1;
+  color: #276344;
+}
+
+.listing-status--pending_review {
+  background: #fff6e8;
+  color: #885b10;
+}
+
+@media (max-width: 760px) {
+  .admin-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-dashboard-page {
+    padding: 20px 14px 45px;
+  }
+
+  .admin-panel {
+    padding: 14px;
+  }
+}

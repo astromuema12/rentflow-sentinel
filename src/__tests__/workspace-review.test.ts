@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/lib/prisma", () => ({ getPrisma: mocks.getPrisma }));
 
-import { MembershipRole } from "@prisma/client";
+import { MembershipRole, UserAccountType } from "@prisma/client";
 import { PATCH as reviewException } from "@/app/api/organizations/[organizationId]/exceptions/[exceptionId]/route";
 import { PATCH as reviewMatch } from "@/app/api/organizations/[organizationId]/matches/[matchId]/route";
 
@@ -45,6 +45,7 @@ function authenticate(role: MembershipRole = MembershipRole.OPERATOR) {
   database.user.findUnique.mockResolvedValue({
     id: "reviewer-1",
     email: "reviewer@example.test",
+    accountType: UserAccountType.LANDLORD,
     isActive: true,
     sessionVersion: 0,
   });

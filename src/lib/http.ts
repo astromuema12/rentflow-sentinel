@@ -12,3 +12,18 @@ export function isSameOriginRequest(request: Request): boolean {
     return false;
   }
 }
+
+export async function parseJsonRequest(
+  request: Request,
+): Promise<{ data: unknown } | { response: Response }> {
+  try {
+    return { data: await request.json() };
+  } catch {
+    return {
+      response: Response.json(
+        { error: "Invalid request body." },
+        { status: 400 },
+      ),
+    };
+  }
+}

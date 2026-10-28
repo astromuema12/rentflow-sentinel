@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RentFlow Sentinel",
-  description: "Rental finance reconciliation for property teams in Kenya.",
+  title: "RentFlow Kenya | Find a place to call home",
+  description:
+    "Explore rental homes across all 47 counties in Kenya and find a place that feels right.",
 };
 
 export default function RootLayout({

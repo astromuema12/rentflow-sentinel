@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RentFlowLogo } from "@/components/rentflow-logo";
 import { ForgotPasswordForm } from "./forgot-password-form";
 
 export default function ForgotPasswordPage() {
@@ -6,7 +7,7 @@ export default function ForgotPasswordPage() {
     <main className="auth-page">
       <section className="auth-card" aria-labelledby="reset-request-title">
         <Link className="auth-brand" href="/">
-          RentFlow <span>Sentinel</span>
+          <RentFlowLogo label="PROPERTY PARTNER" />
         </Link>
         <p className="eyebrow">ACCOUNT RECOVERY</p>
         <h1 id="reset-request-title">Reset your password</h1>

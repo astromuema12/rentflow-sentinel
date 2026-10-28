@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getPrisma } from "@/lib/prisma";
+import { MembershipRole, UserAccountType } from "@prisma/client";
 import {
   AuthorizationError,
   requireAuthenticatedUser,
@@ -7,6 +8,7 @@ import {
 import { SignOutButton } from "./sign-out-button";
 import Link from "next/link";
 import { Building2, ArrowRight } from "lucide-react";
+import { RentFlowLogo } from "@/components/rentflow-logo";
 
 export default async function DashboardPage() {
   let sessionUser;
@@ -18,6 +20,14 @@ export default async function DashboardPage() {
     }
     throw error;
   }
+
+  if (sessionUser.accountType === UserAccountType.RENTER) {
+    redirect("/tenant/dashboard");
+  }
+  if (sessionUser.accountType === UserAccountType.PLATFORM_ADMIN) {
+    redirect("/admin");
+  }
+
   const memberships = await getPrisma().organizationMembership.findMany({
     where: { userId: sessionUser.id },
     select: {
@@ -31,26 +41,28 @@ export default async function DashboardPage() {
     <main className="organization-picker">
       <header className="organization-picker-header">
         <Link className="app-brand" href="/">
-          <span className="app-brand-mark" aria-hidden="true">
-            R
-          </span>
-          <span>
-            RentFlow <strong>Sentinel</strong>
-          </span>
+          <RentFlowLogo label="PROPERTY PARTNER" />
         </Link>
         <SignOutButton />
       </header>
       <section className="organization-picker-content">
-        <p className="eyebrow">YOUR ORGANIZATIONS</p>
-        <h1>Select a workspace</h1>
+        <p className="eyebrow">LANDLORD WORKSPACE</p>
+        <h1>Select a property portfolio</h1>
         <p className="page-subtitle">
-          Choose an organization you’re authorized to access.
+          Choose a rental-management or financial workspace you’re authorized to
+          access.
         </p>
         {memberships.length ? (
           <ul className="organization-list">
             {memberships.map(({ organization, role }) => (
               <li key={organization.id}>
-                <Link href={`/dashboard/${organization.id}`}>
+                <Link
+                  href={
+                    role === MembershipRole.VIEWER
+                      ? `/dashboard/${organization.id}`
+                      : `/landlord/${organization.id}`
+                  }
+                >
                   <Building2 size={20} aria-hidden="true" />
                   <span>
                     <strong>{organization.name}</strong>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AuthorizationError } from "@/lib/auth/authorization";
 import { getOrganizationWorkspace } from "@/lib/workspace";
+import { RentFlowLogo } from "@/components/rentflow-logo";
 import { SignOutButton } from "../sign-out-button";
 import { WorkspaceNavigation } from "./workspace-navigation";
 
@@ -29,15 +30,7 @@ export default async function OrganizationLayout({
     <div className="app-shell">
       <aside className="app-sidebar" aria-label="Organization workspace">
         <Link className="app-brand" href="/dashboard">
-          <span className="app-brand-mark" aria-hidden="true">
-            R
-          </span>
-          <span className="app-brand-copy">
-            <span>
-              RentFlow <strong>Sentinel</strong>
-            </span>
-            <small>PROPERTY FINANCE</small>
-          </span>
+          <RentFlowLogo label="PROPERTY PARTNER" />
         </Link>
         <div className="organization-switcher">
           <span className="workspace-label">WORKSPACE</span>

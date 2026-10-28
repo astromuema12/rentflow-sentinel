@@ -23,6 +23,7 @@ model Organization {
   reconciliationExceptions ReconciliationException[]
   humanReviewDecisions     HumanReviewDecision[]
   auditEvents              AuditEvent[]
+  rentalListings           RentalListing[]
 
   @@index([slug])
 }
@@ -34,21 +35,32 @@ enum MembershipRole {
   VIEWER
 }
 
+enum UserAccountType {
+  RENTER
+  LANDLORD
+  PLATFORM_ADMIN
+}
+
 model User {
-  id             String   @id @default(cuid())
-  email          String   @unique
+  id             String          @id @default(cuid())
+  email          String          @unique
   passwordHash   String
   firstName      String?
   lastName       String?
-  isActive       Boolean  @default(true)
-  sessionVersion Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  accountType    UserAccountType @default(LANDLORD)
+  isActive       Boolean         @default(true)
+  sessionVersion Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   memberships         OrganizationMembership[]
   reviewDecisions     HumanReviewDecision[]
   auditEvents         AuditEvent[]             @relation("AuditActor")
   passwordResetTokens PasswordResetToken[]
+  createdListings     RentalListing[]          @relation("ListingCreator")
+  savedListings       SavedRentalListing[]
+  renterEnquiries     RentalEnquiry[]          @relation("RenterEnquiries")
+  reviewedListings    RentalListing[]          @relation("ListingReviewer")
 }
 
 model AuthRateLimit {
@@ -375,4 +387,89 @@ model AuditEvent {
   @@index([action])
   @@index([entityType])
   @@index([occurredAt])
+}
+
+enum RentalPricePeriod {
+  MONTHLY
+  NIGHTLY
+}
+
+enum RentalListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  PAUSED
+  REJECTED
+}
+
+enum RentalEnquiryStatus {
+  NEW
+  RESPONDED
+  CLOSED
+}
+
+model RentalListing {
+  id             String              @id @default(cuid())
+  organizationId String
+  createdById    String
+  reviewedById   String?
+  title          String
+  description    String
+  county         String
+  town           String
+  neighborhood   String
+  price          Decimal             @db.Decimal(12, 2)
+  pricePeriod    RentalPricePeriod
+  bedrooms       Int
+  bathrooms      Int
+  furnished      Boolean             @default(false)
+  imageUrls      String[]            @default([])
+  status         RentalListingStatus @default(DRAFT)
+  moderationNote String?
+  publishedAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy    User                 @relation("ListingCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  reviewedBy   User?                @relation("ListingReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  savedBy      SavedRentalListing[]
+  enquiries    RentalEnquiry[]
+
+  @@index([organizationId, status])
+  @@index([county, status])
+  @@index([pricePeriod, price, status])
+  @@index([createdAt])
+}
+
+model SavedRentalListing {
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing RentalListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@id([userId, listingId])
+  @@index([listingId])
+  @@index([userId, createdAt])
+}
+
+model RentalEnquiry {
+  id          String              @id @default(cuid())
+  listingId   String
+  renterId    String
+  message     String
+  status      RentalEnquiryStatus @default(NEW)
+  response    String?
+  respondedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  listing RentalListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  renter  User          @relation("RenterEnquiries", fields: [renterId], references: [id], onDelete: Restrict)
+
+  @@unique([listingId, renterId])
+  @@index([renterId, createdAt])
+  @@index([listingId, status])
 }

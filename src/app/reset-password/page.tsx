@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ResetPasswordForm } from "./reset-password-form";
 import type { Metadata } from "next";
+import { RentFlowLogo } from "@/components/rentflow-logo";
 
 export const metadata: Metadata = {
   referrer: "no-referrer",
@@ -12,7 +13,7 @@ export default function ResetPasswordPage() {
     <main className="auth-page">
       <section className="auth-card" aria-labelledby="reset-title">
         <Link className="auth-brand" href="/">
-          RentFlow <span>Sentinel</span>
+          <RentFlowLogo label="PROPERTY PARTNER" />
         </Link>
         <p className="eyebrow">ACCOUNT RECOVERY</p>
         <h1 id="reset-title">Choose a new password</h1>

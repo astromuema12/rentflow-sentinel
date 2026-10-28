@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { MembershipRole } from "@prisma/client";
+import { MembershipRole, UserAccountType } from "@prisma/client";
 import { getPrisma } from "@/lib/prisma";
 
 const roleRank: Record<MembershipRole, number> = {
@@ -29,6 +29,9 @@ export async function requireAuthenticatedUser() {
     select: {
       id: true,
       email: true,
+      firstName: true,
+      lastName: true,
+      accountType: true,
       isActive: true,
       sessionVersion: true,
     },
@@ -41,11 +44,30 @@ export async function requireAuthenticatedUser() {
   return user;
 }
 
+export async function requireAccountType(accountType: UserAccountType) {
+  const user = await requireAuthenticatedUser();
+  if (user.accountType !== accountType) {
+    throw new AuthorizationError(403);
+  }
+  return user;
+}
+
+export async function requireRenter() {
+  return requireAccountType(UserAccountType.RENTER);
+}
+
+export async function requirePlatformAdmin() {
+  return requireAccountType(UserAccountType.PLATFORM_ADMIN);
+}
+
 export async function requireOrganizationAccess(
   organizationId: string,
   minimumRole: MembershipRole = MembershipRole.VIEWER,
 ) {
   const user = await requireAuthenticatedUser();
+  if (user.accountType !== UserAccountType.LANDLORD) {
+    throw new AuthorizationError(403);
+  }
   const membership = await getPrisma().organizationMembership.findUnique({
     where: {
       organizationId_userId: {

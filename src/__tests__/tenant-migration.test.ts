@@ -14,6 +14,7 @@ beforeAll(async () => {
   for (const migrationName of [
     "20260101000000_init_rentflow_sentinel",
     "20261027100000_auth_security",
+    "20261028100000_rental_marketplace",
   ]) {
     const sql = await readFile(
       join(migrationRoot, migrationName, "migration.sql"),
@@ -97,5 +98,46 @@ describe("tenant-aware database constraints", () => {
     ],
   ])("rejects cross-organization references from %s", async (_label, sql) => {
     await expect(database!.exec(sql)).rejects.toMatchObject({ code: "23503" });
+  });
+
+  it("creates renter accounts, rental listings, saved homes, and enquiries", async () => {
+    await database!.exec(`
+      INSERT INTO "User" ("id", "email", "passwordHash", "accountType", "updatedAt")
+      VALUES ('renter-a', 'renter@test.invalid', 'test-only-hash', 'RENTER', now());
+
+      INSERT INTO "RentalListing"
+        ("id", "organizationId", "createdById", "title", "description", "county", "town", "neighborhood",
+         "price", "pricePeriod", "bedrooms", "bathrooms", "imageUrls", "updatedAt")
+      VALUES
+        ('rental-a', 'org-a', 'user-a', 'A quiet home', 'A comfortable home near local shops and transport.',
+         'Nairobi City', 'Nairobi', 'Kilimani', 50000, 'MONTHLY', 2, 1, ARRAY[]::TEXT[], now());
+
+      INSERT INTO "SavedRentalListing" ("userId", "listingId")
+      VALUES ('renter-a', 'rental-a');
+
+      INSERT INTO "RentalEnquiry" ("id", "listingId", "renterId", "message", "updatedAt")
+      VALUES ('enquiry-a', 'rental-a', 'renter-a', 'Is the home available next month?', now());
+    `);
+
+    const accounts = await database!.query(
+      `SELECT "accountType"::text FROM "User" WHERE "id" IN ('user-a', 'renter-a') ORDER BY "id"`,
+    );
+    const listing = await database!.query(
+      `SELECT "status"::text FROM "RentalListing" WHERE "id" = 'rental-a'`,
+    );
+    const savedHomes = await database!.query(
+      `SELECT count(*)::int AS count FROM "SavedRentalListing" WHERE "userId" = 'renter-a'`,
+    );
+    const enquiries = await database!.query(
+      `SELECT count(*)::int AS count FROM "RentalEnquiry" WHERE "renterId" = 'renter-a'`,
+    );
+
+    expect(accounts.rows).toEqual([
+      { accountType: "RENTER" },
+      { accountType: "LANDLORD" },
+    ]);
+    expect(listing.rows).toEqual([{ status: "DRAFT" }]);
+    expect(savedHomes.rows).toEqual([{ count: 1 }]);
+    expect(enquiries.rows).toEqual([{ count: 1 }]);
   });
 });
