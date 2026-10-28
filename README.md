@@ -8,7 +8,7 @@ A Kenya-focused rental marketplace for exploring homes across all 47 counties. R
 - **Language:** TypeScript 5
 - **Styling:** Tailwind CSS v4
 - **Components:** shadcn/ui + Radix UI
-- **Database:** Neon PostgreSQL via Prisma 7
+- **Database:** Neon PostgreSQL via Prisma 7 (pooled runtime connection; direct connection for Prisma migrations)
 - **State:** Zustand
 - **Forms:** React Hook Form + Zod
 - **Icons:** Lucide React
@@ -32,6 +32,25 @@ npm run db:push
 # Start development server
 npm run dev
 ```
+
+For Neon, set `DATABASE_URL` to its pooled connection string for the app. Set `DIRECT_URL` to its direct (non-pooled) connection string for Prisma schema and migration commands. Keep both values private; add them to `.env.local` for local work and to the deployment environment for production. Prisma migrations use `DIRECT_URL` when present and otherwise fall back to `DATABASE_URL`.
+
+## Deploying with Vercel and Neon
+
+1. Create a Neon PostgreSQL project and copy its pooled and direct connection strings. Do not commit either string.
+2. Sign in to Vercel, choose **Add New → Project**, and import `astromuema12/rentflow-sentinel` from GitHub. Keep the detected Next.js framework and default build command (`npm run build`).
+3. Add these Vercel environment variables for **Production**, **Preview**, and **Development** as appropriate:
+   - `DATABASE_URL`: Neon pooled connection string.
+   - `DIRECT_URL`: Neon direct, non-pooled connection string. Used by Prisma CLI commands; do not use a pooled URL for migrations.
+   - `AUTH_SECRET`: a unique secret generated with `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"`.
+   - `AUTH_TRUST_HOST`: `true` when deployed behind Vercel's trusted proxy.
+   - `NEXT_PUBLIC_APP_URL`: the deployed site's canonical HTTPS URL.
+   - `NEXT_PUBLIC_APP_NAME`: `RentFlow Sentinel`.
+   - `RESEND_API_KEY` and `EMAIL_FROM`: add only after configuring an authorized Resend sender; required for password-reset email.
+4. Before serving the first deployment, apply the committed database migrations from a trusted local machine with `.env.local` configured: `npm run db:migrate`. Verify the command succeeds before promoting an account to `PLATFORM_ADMIN`.
+5. Deploy from Vercel and check the deployment logs and site. A successful build alone does not apply database migrations or create a platform-admin account.
+
+Never put database URLs, `AUTH_SECRET`, or email API keys in Git, client-side `NEXT_PUBLIC_*` variables, screenshots, or chat. Rotate any credential that is accidentally exposed.
 
 ## Account types and access
 

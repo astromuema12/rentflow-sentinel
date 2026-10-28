@@ -49,3 +49,4 @@ vitest
 # Misc
 *.tgz
 *.tar.gz
+.vercel
