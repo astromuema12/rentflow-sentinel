@@ -1,9 +1,14 @@
 import {
   ArrowRight,
+  Building2,
   CircleAlert,
+  CircleDollarSign,
   FileClock,
   FileSpreadsheet,
-  Plus,
+  Play,
+  TrendingUp,
+  Upload,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { getPrisma } from "@/lib/prisma";
@@ -60,45 +65,80 @@ export default async function OrganizationDashboard({
   const paid = debits._sum.amount?.toString() ?? "0";
   const hasActivity = batchCount > 0 || transactionCount > 0;
 
+  const summaryCards = [
+    {
+      label: "Incoming funds",
+      value: formatMoney(received, organization.currency),
+      detail: "Total imported credit transactions",
+      icon: CircleDollarSign,
+      tone: "primary",
+    },
+    {
+      label: "Operating outflows",
+      value: formatMoney(paid, organization.currency),
+      detail: "Total imported debit transactions",
+      icon: Wallet,
+      tone: "neutral",
+    },
+    {
+      label: "Import batches",
+      value: String(batchCount),
+      detail: "Statements and ledgers received",
+      icon: Building2,
+      tone: "success",
+    },
+    {
+      label: "Transactions on file",
+      value: String(transactionCount),
+      detail:
+        openExceptionCount > 0
+          ? `${openExceptionCount} exceptions need attention`
+          : "No open reconciliation issues",
+      icon: openExceptionCount > 0 ? CircleAlert : TrendingUp,
+      tone: openExceptionCount > 0 ? "warning" : "success",
+    },
+  ];
+
   return (
     <div className="workspace-page">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">OVERVIEW</p>
+          <p className="eyebrow">PORTFOLIO OVERVIEW</p>
           <h1>{organization.name}</h1>
           <p className="page-subtitle">
-            A current view of imports and reconciliation activity.
+            Cashflow visibility, import activity, and reconciliation health for
+            your rental operations.
           </p>
         </div>
-        <Link
-          className="button button-primary"
-          href={`/dashboard/${organizationId}/imports`}
-        >
-          <Plus size={16} aria-hidden="true" /> Review imports
-        </Link>
+        <div className="page-actions">
+          <Link
+            className="button button-secondary"
+            href={`/dashboard/${organizationId}/imports/upload`}
+          >
+            <Upload size={16} aria-hidden="true" /> Upload CSV
+          </Link>
+          <Link
+            className="button button-primary"
+            href={`/dashboard/${organizationId}/reconciliation/run`}
+          >
+            <Play size={16} aria-hidden="true" /> Run reconciliation
+          </Link>
+        </div>
       </header>
 
       <section className="summary-grid" aria-label="Organization activity">
-        <article className="summary-card">
-          <span>Import batches</span>
-          <strong>{batchCount}</strong>
-          <small>All batches recorded</small>
-        </article>
-        <article className="summary-card">
-          <span>Transactions</span>
-          <strong>{transactionCount}</strong>
-          <small>Imported transaction records</small>
-        </article>
-        <article className="summary-card">
-          <span>Credits recorded</span>
-          <strong>{formatMoney(received, organization.currency)}</strong>
-          <small>Sum of imported credit transactions</small>
-        </article>
-        <article className="summary-card">
-          <span>Debits recorded</span>
-          <strong>{formatMoney(paid, organization.currency)}</strong>
-          <small>Sum of imported debit transactions</small>
-        </article>
+        {summaryCards.map(({ label, value, detail, icon: Icon, tone }) => (
+          <article key={label} className={`summary-card summary-card--${tone}`}>
+            <div className="summary-card__header">
+              <span>{label}</span>
+              <span className="summary-card__icon" aria-hidden="true">
+                <Icon size={15} />
+              </span>
+            </div>
+            <strong>{value}</strong>
+            <small>{detail}</small>
+          </article>
+        ))}
       </section>
 
       {openExceptionCount > 0 ? (
@@ -186,7 +226,8 @@ export default async function OrganizationDashboard({
                 Import history will appear here once a batch has been added.
               </p>
               <p className="muted-note">
-                Import processing is not yet available in this workspace.
+                Upload a CSV export from your bank or property ledger to get
+                started.
               </p>
             </div>
           )}
@@ -239,8 +280,8 @@ export default async function OrganizationDashboard({
       </div>
       {!hasActivity ? (
         <p className="footnote">
-          This organization has no imported financial records yet. Figures above
-          reflect the database’s current empty state.
+          Your portfolio is ready. Upload a CSV statement to see incoming funds,
+          outflows, and items that need review here.
         </p>
       ) : null}
     </div>

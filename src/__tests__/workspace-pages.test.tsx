@@ -74,7 +74,7 @@ describe("organization workspace screens", () => {
     expect(html).toContain("No imports yet");
     expect(html).toContain("No reconciliation runs recorded");
     expect(html).toContain(
-      "This organization has no imported financial records yet.",
+      "Your portfolio is ready. Upload a CSV statement to see incoming funds",
     );
     expect(database.importBatch.count).toHaveBeenCalledWith({
       where: { organizationId: "org-1" },

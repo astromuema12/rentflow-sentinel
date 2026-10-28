@@ -32,8 +32,11 @@ export default async function OrganizationLayout({
           <span className="app-brand-mark" aria-hidden="true">
             R
           </span>
-          <span>
-            RentFlow <strong>Sentinel</strong>
+          <span className="app-brand-copy">
+            <span>
+              RentFlow <strong>Sentinel</strong>
+            </span>
+            <small>PROPERTY FINANCE</small>
           </span>
         </Link>
         <div className="organization-switcher">

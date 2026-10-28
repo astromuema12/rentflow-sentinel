@@ -1,4 +1,4 @@
-import { FileClock, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileClock, ChevronLeft, ChevronRight, Upload } from "lucide-react";
 import Link from "next/link";
 import { getPrisma } from "@/lib/prisma";
 import { formatDate, getOrganizationWorkspace } from "@/lib/workspace";
@@ -47,6 +47,12 @@ export default async function ImportsPage({
             Import history and source record processing for {organization.name}.
           </p>
         </div>
+        <Link
+          className="button button-primary"
+          href={`/dashboard/${organizationId}/imports/upload`}
+        >
+          <Upload size={16} aria-hidden="true" /> Upload CSV
+        </Link>
       </header>
       {batches.length ? (
         <>
@@ -136,8 +142,8 @@ export default async function ImportsPage({
           <FileClock size={25} aria-hidden="true" />
           <h2>No import batches</h2>
           <p>
-            There are no imports for this organization yet. This workspace does
-            not currently have an import upload or processing workflow.
+            Add a CSV export from your bank or property ledger to start building
+            your portfolio activity history.
           </p>
         </div>
       )}

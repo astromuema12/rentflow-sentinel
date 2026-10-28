@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpDown } from "lucide-react";
+import { ArrowRight, ArrowUpDown, Play } from "lucide-react";
 import Link from "next/link";
 import { MembershipRole, Prisma } from "@prisma/client";
 import { getPrisma } from "@/lib/prisma";
@@ -121,6 +121,12 @@ export default async function ReconciliationPage({
             confirming them.
           </p>
         </div>
+        <Link
+          className="button button-primary"
+          href={`/dashboard/${organizationId}/reconciliation/run`}
+        >
+          <Play size={16} aria-hidden="true" /> Run reconciliation
+        </Link>
       </header>
       <nav className="filter-tabs" aria-label="Filter transactions">
         {filters.map((filter) => (
