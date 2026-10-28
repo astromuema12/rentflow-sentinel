@@ -74,7 +74,7 @@ export default function Home() {
             <div className="hero-stamp" aria-label="Search throughout Kenya">
               <span>MADE FOR</span>
               <strong>KENYA</strong>
-              <span>FROM COAST TO COUNTRY</span>
+              <span>FROM COAST TO COUNTRYSIDE</span>
             </div>
             <span className="hero-decorative-line" aria-hidden="true" />
           </div>

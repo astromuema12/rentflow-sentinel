@@ -832,13 +832,16 @@ a {
 
 .hero-image-caption {
   position: absolute;
-  z-index: 1;
-  right: 24px;
+  z-index: 2;
+  right: 190px;
   bottom: 23px;
   left: 24px;
   display: grid;
   gap: 7px;
-  color: #fff;
+  border-radius: 6px;
+  background: rgba(251, 250, 246, 0.96);
+  padding: 10px 12px;
+  color: #000;
 }
 
 .hero-image-caption span {
@@ -849,6 +852,7 @@ a {
 }
 
 .hero-image-caption strong {
+  color: #000;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 19px;
   font-weight: 400;
@@ -857,6 +861,7 @@ a {
 
 .hero-photo-inset {
   position: absolute;
+  z-index: 1;
   right: 0;
   bottom: 0;
   width: 167px;
@@ -887,10 +892,14 @@ a {
 }
 
 .hero-stamp span {
+  width: calc(100% - 12px);
   font-family: "Consolas", "SFMono-Regular", monospace;
   font-size: 6px;
   font-weight: 700;
-  letter-spacing: 0.65px;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .hero-stamp strong {
@@ -1492,7 +1501,7 @@ a {
 
   .hero-image-caption {
     right: 14px;
-    bottom: 14px;
+    bottom: 118px;
     left: 14px;
   }
 
