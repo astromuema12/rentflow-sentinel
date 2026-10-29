@@ -15,9 +15,11 @@ export function RentFlowLogo({
   );
 }
 
+import Image from "next/image";
+
 export function RentFlowMark({ className }: { className?: string }) {
   return (
-    <img
+    <Image
       alt=""
       aria-hidden="true"
       className={className}

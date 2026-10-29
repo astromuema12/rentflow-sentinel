@@ -608,9 +608,9 @@ a {
 
 .rentflow-logo-mark {
   display: block;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
 }
 
 .rentflow-logo-word {
@@ -619,7 +619,7 @@ a {
   gap: 7px;
   color: #263a2d;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 18px;
+  font-size: 25px;
   font-weight: 700;
   letter-spacing: -0.65px;
 }
@@ -627,39 +627,39 @@ a {
 .rentflow-logo-word small {
   color: #8b7960;
   font-family: "Consolas", "SFMono-Regular", monospace;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.15px;
 }
 
 .auth-brand .rentflow-logo-mark,
 .app-brand .rentflow-logo-mark {
-  width: 44px;
-  height: 44px;
-  flex-basis: 44px;
+  width: 60px;
+  height: 60px;
+  flex-basis: 60px;
 }
 
 .auth-brand .rentflow-logo-word {
   font-family: "Aptos", "Segoe UI", sans-serif;
-  font-size: 15px;
+  font-size: 21px;
   letter-spacing: -0.4px;
 }
 
 .auth-brand .rentflow-logo-word small {
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 0.75px;
 }
 
 .app-brand .rentflow-logo-word {
   color: #f4f5ef;
   font-family: "Aptos", "Segoe UI", sans-serif;
-  font-size: 14px;
+  font-size: 20px;
   letter-spacing: -0.35px;
 }
 
 .app-brand .rentflow-logo-word small {
   color: #a9b9a9;
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 0.65px;
 }
 
@@ -1427,9 +1427,9 @@ a {
   }
 
   .market-brand .rentflow-logo-mark {
-    width: 42px;
-    height: 42px;
-    flex-basis: 42px;
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
   }
 
   .market-brand .rentflow-logo-word {
