@@ -21,7 +21,10 @@ export function RentFlowMark({ className }: { className?: string }) {
       alt=""
       aria-hidden="true"
       className={className}
+      height={40}
       src="/rentflow-logo.png"
+      style={{ objectFit: "contain" }}
+      width={40}
     />
   );
 }
