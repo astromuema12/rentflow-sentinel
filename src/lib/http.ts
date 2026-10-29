@@ -1,13 +1,12 @@
 export function isSameOriginRequest(request: Request): boolean {
   const origin = request.headers.get("origin");
-  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL;
+  if (!origin) return false;
 
-  if (!origin || !configuredOrigin) {
-    return false;
-  }
+  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL;
+  const allowedOrigin = configuredOrigin || new URL(request.url).origin;
 
   try {
-    return new URL(origin).origin === new URL(configuredOrigin).origin;
+    return new URL(origin).origin === new URL(allowedOrigin).origin;
   } catch {
     return false;
   }
