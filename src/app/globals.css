@@ -634,9 +634,9 @@ a {
 
 .auth-brand .rentflow-logo-mark,
 .app-brand .rentflow-logo-mark {
-  width: 34px;
-  height: 34px;
-  flex-basis: 34px;
+  width: 44px;
+  height: 44px;
+  flex-basis: 44px;
 }
 
 .auth-brand .rentflow-logo-word {
@@ -1427,9 +1427,9 @@ a {
   }
 
   .market-brand .rentflow-logo-mark {
-    width: 31px;
-    height: 31px;
-    flex-basis: 31px;
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
   }
 
   .market-brand .rentflow-logo-word {
