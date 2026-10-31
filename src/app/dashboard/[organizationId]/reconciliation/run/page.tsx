@@ -35,7 +35,8 @@ export default async function RunReconciliationPage({
           <div>
             <h2>Run reconciliation</h2>
             <p className="panel-subtitle">
-              This will normalize unprocessed records and create proposed matches
+              This will normalize unprocessed records and create proposed
+              matches
             </p>
           </div>
           <Play size={20} aria-hidden="true" />

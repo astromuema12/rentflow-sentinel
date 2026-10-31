@@ -6,19 +6,7 @@ import {
 } from "@/lib/auth/authorization";
 import { MembershipRole } from "@prisma/client";
 import { createHash } from "crypto";
-
-function isSameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  if (!origin) return true;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  try {
-    const originUrl = new URL(origin);
-    const appUrlParsed = new URL(appUrl);
-    return originUrl.origin === appUrlParsed.origin;
-  } catch {
-    return false;
-  }
-}
+import { isSameOriginRequest } from "@/lib/http";
 
 function parseCSV(text: string) {
   const lines = text.split(/\r?\n/).filter((line) => line.trim());
@@ -68,7 +56,7 @@ export async function POST(
   { params }: { params: Promise<{ organizationId: string }> },
 ) {
   try {
-    if (!isSameOrigin(request)) {
+    if (!isSameOriginRequest(request)) {
       return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
     }
 
@@ -89,7 +77,10 @@ export async function POST(
     const rows = parseCSV(text);
 
     if (rows.length === 0) {
-      return NextResponse.json({ error: "No data rows found" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No data rows found" },
+        { status: 400 },
+      );
     }
 
     const prisma = getPrisma();
@@ -109,13 +100,25 @@ export async function POST(
 
     for (const row of rows) {
       const amountStr =
-        row.Amount || row.amount || row.AMOUNT || row["Transaction Amount"] || "0";
+        row.Amount ||
+        row.amount ||
+        row.AMOUNT ||
+        row["Transaction Amount"] ||
+        "0";
       const amount = parseFloat(amountStr.replace(/,/g, ""));
       const dateStr =
-        row.Date || row.date || row.DATE || row["Transaction Date"] || row.ValueDate;
+        row.Date ||
+        row.date ||
+        row.DATE ||
+        row["Transaction Date"] ||
+        row.ValueDate;
       const date = dateStr ? new Date(dateStr) : new Date();
       const description =
-        row.Description || row.description || row.Details || row.details || null;
+        row.Description ||
+        row.description ||
+        row.Details ||
+        row.details ||
+        null;
       const reference = row.Reference || row.reference || row.Ref || null;
       const payerPayee =
         row["Payer/Payee"] ||
@@ -152,10 +155,9 @@ export async function POST(
     });
 
     for (const record of sourceRecords) {
-      const raw = record.rawData as Record<string, any>;
-      const typeStr = (raw.Type || raw.type || raw.TRANSACTION_TYPE || "")
-        .toString()
-        .toUpperCase();
+      const raw = record.rawData as Record<string, unknown>;
+      const rawType = raw.Type ?? raw.type ?? raw.TRANSACTION_TYPE;
+      const typeStr = typeof rawType === "string" ? rawType.toUpperCase() : "";
       const type = typeStr === "DEBIT" || typeStr === "DR" ? "DEBIT" : "CREDIT";
 
       await prisma.normalizedTransaction.create({

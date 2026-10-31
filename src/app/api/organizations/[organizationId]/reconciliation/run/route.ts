@@ -5,26 +5,14 @@ import {
   requireOrganizationAccess,
 } from "@/lib/auth/authorization";
 import { MembershipRole } from "@prisma/client";
-
-function isSameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  if (!origin) return true;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  try {
-    const originUrl = new URL(origin);
-    const appUrlParsed = new URL(appUrl);
-    return originUrl.origin === appUrlParsed.origin;
-  } catch {
-    return false;
-  }
-}
+import { isSameOriginRequest } from "@/lib/http";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ organizationId: string }> },
 ) {
   try {
-    if (!isSameOrigin(request)) {
+    if (!isSameOriginRequest(request)) {
       return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
     }
 
@@ -51,15 +39,12 @@ export async function POST(
       existingNormalized.map((t) => t.importedSourceRecordId).filter(Boolean),
     );
 
-    const toProcess = unlinkedSourceRecords.filter(
-      (r) => !linkedIds.has(r.id),
-    );
+    const toProcess = unlinkedSourceRecords.filter((r) => !linkedIds.has(r.id));
 
     for (const record of toProcess) {
-      const raw = record.rawData as Record<string, any>;
-      const typeStr = (raw.Type || raw.type || raw.TRANSACTION_TYPE || "")
-        .toString()
-        .toUpperCase();
+      const raw = record.rawData as Record<string, unknown>;
+      const rawType = raw.Type ?? raw.type ?? raw.TRANSACTION_TYPE;
+      const typeStr = typeof rawType === "string" ? rawType.toUpperCase() : "";
       const type = typeStr === "DEBIT" || typeStr === "DR" ? "DEBIT" : "CREDIT";
 
       await prisma.normalizedTransaction.create({

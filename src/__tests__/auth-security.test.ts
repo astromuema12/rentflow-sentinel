@@ -335,6 +335,77 @@ describe("server authentication and organization authorization", () => {
     );
   });
 
+  it("creates renter accounts when the configured app URL differs from the live origin", async () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://production.example";
+    database.user.create.mockResolvedValue({ id: "new-renter" });
+
+    const response = await registerRenter(
+      new Request(
+        "https://preview-deployment.example/api/auth/renter-registration",
+        {
+          method: "POST",
+          headers: {
+            Origin: "https://preview-deployment.example",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: "renter@example.test",
+            password: "a-secure-renter-password",
+            firstName: "Amina",
+            lastName: "Njoroge",
+          }),
+        },
+      ),
+    );
+
+    expect(response.status).toBe(201);
+    expect(database.user.create).toHaveBeenCalled();
+  });
+
+  it("accepts a same-origin registration when the browser omits the Origin header", async () => {
+    database.user.create.mockResolvedValue({ id: "new-renter" });
+
+    const response = await registerRenter(
+      new Request("http://localhost:3000/api/auth/renter-registration", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Sec-Fetch-Site": "same-origin",
+        },
+        body: JSON.stringify({
+          email: "renter@example.test",
+          password: "a-secure-renter-password",
+          firstName: "Amina",
+          lastName: "Njoroge",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(database.user.create).toHaveBeenCalled();
+  });
+
+  it("rejects cross-origin account registration", async () => {
+    const response = await registerRenter(
+      new Request("http://localhost:3000/api/auth/renter-registration", {
+        method: "POST",
+        headers: {
+          Origin: "https://attacker.example",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: "renter@example.test",
+          password: "a-secure-renter-password",
+          firstName: "Amina",
+          lastName: "Njoroge",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(database.user.create).not.toHaveBeenCalled();
+  });
+
   it("does not grant platform listing review to organization owners", async () => {
     authenticate(MembershipRole.OWNER, UserAccountType.LANDLORD);
     const response = await reviewRental(

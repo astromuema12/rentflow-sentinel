@@ -1,4 +1,4 @@
-import { Upload, FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet } from "lucide-react";
 import { getOrganizationWorkspace } from "@/lib/workspace";
 import { UploadForm } from "./upload-form";
 

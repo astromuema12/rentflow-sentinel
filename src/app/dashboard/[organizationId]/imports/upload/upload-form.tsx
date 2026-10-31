@@ -40,8 +40,8 @@ export function UploadForm({ organizationId }: { organizationId: string }) {
       const data = await res.json();
       router.push(`/dashboard/${organizationId}/imports/${data.batchId}`);
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
     }
@@ -58,9 +58,7 @@ export function UploadForm({ organizationId }: { organizationId: string }) {
         />
         <label htmlFor="file-upload" className="upload-label">
           <Upload size={24} aria-hidden="true" />
-          <span>
-            {file ? file.name : "Choose a CSV file or drag and drop"}
-          </span>
+          <span>{file ? file.name : "Choose a CSV file or drag and drop"}</span>
         </label>
       </div>
       {error && <p className="error-message">{error}</p>}

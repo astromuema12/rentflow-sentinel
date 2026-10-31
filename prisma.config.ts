@@ -7,7 +7,10 @@ config({ path: ".env.local" });
 // connection. Leave the URL undefined when no environment variable is present
 // so generation can succeed; commands that actually connect (migrate, db push,
 // introspect) will still fail with Prisma's own missing-datasource error.
-const datasourceUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
+const datasourceUrl =
+  process.env.DIRECT_URL ||
+  process.env.DATABASE_URL_UNPOOLED ||
+  process.env.DATABASE_URL;
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

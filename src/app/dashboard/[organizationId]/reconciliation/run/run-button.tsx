@@ -4,6 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Play } from "lucide-react";
 
+type ReconciliationResult = {
+  runId: string;
+  processed: number;
+  suggestedMatches: number;
+};
+
 export function RunReconciliationButton({
   organizationId,
 }: {
@@ -11,7 +17,7 @@ export function RunReconciliationButton({
 }) {
   const router = useRouter();
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ReconciliationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleRun() {
@@ -32,11 +38,13 @@ export function RunReconciliationButton({
         throw new Error(data.error || "Failed to run reconciliation");
       }
 
-      const data = await res.json();
+      const data = (await res.json()) as ReconciliationResult;
       setResult(data);
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to run reconciliation",
+      );
     } finally {
       setRunning(false);
     }

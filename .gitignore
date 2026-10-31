@@ -50,3 +50,4 @@ vitest
 *.tgz
 *.tar.gz
 .vercel
+.env*

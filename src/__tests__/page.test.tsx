@@ -7,9 +7,13 @@ describe("renter home page", () => {
   it("introduces a Kenya-wide rental search experience", () => {
     render(<Home />);
 
-    expect(
-      screen.getByRole("link", { name: "RentFlow home" }).querySelector("svg"),
-    ).toHaveAttribute("viewBox", "0 0 40 40");
+    const brandMark = screen
+      .getByRole("link", { name: "RentFlow home" })
+      .querySelector("img");
+
+    expect(brandMark).toBeInTheDocument();
+    expect(brandMark).toHaveAttribute("width", "40");
+    expect(brandMark).toHaveAttribute("height", "40");
     expect(
       screen.getByRole("heading", {
         level: 1,
