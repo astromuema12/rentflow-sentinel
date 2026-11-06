@@ -43,7 +43,7 @@ For Neon, set `DATABASE_URL` to its pooled connection string for the app. Set `D
    - `DATABASE_URL`: Neon pooled connection string.
    - `DIRECT_URL`: Neon direct, non-pooled connection string. Used by Prisma CLI commands; do not use a pooled URL for migrations.
    - `AUTH_SECRET`: a unique secret generated with `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"`.
-   - `AUTH_TRUST_HOST`: `true` when deployed behind Vercel's trusted proxy.
+   - `AUTH_TRUST_HOST`: set to `true` only behind a trusted proxy (e.g. Vercel) that overwrites host and client-IP forwarding headers. Auth.js v5 also reads this env signal; keep it explicit in deployment config.
    - `NEXT_PUBLIC_APP_URL`: the deployed site's canonical HTTPS URL.
    - `NEXT_PUBLIC_APP_NAME`: `RentFlow Sentinel`.
    - `RESEND_API_KEY` and `EMAIL_FROM`: add only after configuring an authorized Resend sender; required for password-reset email.
@@ -71,13 +71,9 @@ Never put database URLs, `AUTH_SECRET`, or email API keys in Git, client-side `N
 - The admin panel at `/admin` reviews and publishes, rejects, or pauses listings and can suspend/reactivate renter and landlord accounts. It cannot change account roles or suspend platform-admin accounts. Only `PLATFORM_ADMIN` users can call admin endpoints.
 - Public legal pages are available at `/legal/terms`, `/legal/privacy`, `/legal/cookies`, `/legal/disclaimer`, `/legal/acceptable-use`, and `/legal/listing-standards`. They describe RentFlow as a marketplace for multiple kinds of residential rentals, not only short stays. These are draft policies and visibly require verified legal-entity/contact details and review by Kenyan counsel before launch.
 - A new listing is not visible to renters until a platform admin approves it. Listing photos are optional and currently accept HTTPS URLs from `images.unsplash.com`; private street addresses and tenant details must not be added to public listing fields.
-- Password reset links require `RESEND_API_KEY` and `EMAIL_FROM`. They are single-use, expire after 30 minutes, and password reset invalidates existing sessions. Configure an authorized sender in Resend before enabling password recovery. Reset responses do not disclose whether an account exists.
-- `AUTH_SECRET` must be a unique deployment secret. `AUTH_TRUST_HOST=true` is intended only behind a trusted proxy that overwrites incoming host and client-IP forwarding headers. Production cookies are marked `Secure`; local development uses HTTP cookies.
+- `AUTH_SECRET` must be a unique deployment secret. Keep `AUTH_TRUST_HOST=true` only behind a trusted proxy that overwrites incoming host and client-IP forwarding headers (Auth.js consumes this env signal). Production cookies are marked `Secure`; local development uses HTTP cookies.
 - Login, renter registration, and password-reset requests use database-backed rate limits. The client-IP limit relies on a trusted proxy setting `x-real-ip`; do not forward a client-supplied value as trusted.
 - `/api/organizations/:organizationId/exports` exports only that organization's transactions. The imported-record endpoint is similarly constrained by organization, import batch, and record ID. State-changing endpoints validate their payload and reject cross-origin requests.
-- Password reset links require `RESEND_API_KEY` and `EMAIL_FROM`. They are single-use, expire after 30 minutes, and password reset invalidates existing sessions. Configure an authorized sender in Resend before enabling password recovery. Reset responses do not disclose whether an account exists.
-- `AUTH_SECRET` must be a unique deployment secret. `AUTH_TRUST_HOST=true` is intended only behind a trusted proxy that overwrites incoming host and client-IP forwarding headers. Production cookies are marked `Secure`; local development uses HTTP cookies.
-- Login and password-reset requests use database-backed rate limits. The client-IP limit relies on a trusted proxy setting `x-real-ip`; do not forward a client-supplied value as trusted.
 - Apply `prisma/migrations` with `npm run db:migrate` when the database already tracks the existing migration history. For a new development database, `npm run db:push` is available. Before applying the tenant-constraint migration to a populated database, audit existing batch/run/transaction links for cross-organization references; the migration intentionally fails rather than silently accepting inconsistent rows. Review the migration and take a backup before applying schema changes to any shared database.
 
 ## Property and finance workspaces
