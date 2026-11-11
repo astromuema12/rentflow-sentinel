@@ -2,7 +2,11 @@ import bcrypt from "bcryptjs";
 import { Prisma, UserAccountType } from "@prisma/client";
 import { authorizationErrorResponse } from "@/lib/auth/authorization";
 import { consumeRateLimit, createRateLimitKey } from "@/lib/auth/rate-limit";
-import { isSameOriginRequest, parseJsonRequest } from "@/lib/http";
+import {
+  getTrustedClientAddress,
+  isSameOriginRequest,
+  parseJsonRequest,
+} from "@/lib/http";
 import { getPrisma } from "@/lib/prisma";
 import { renterRegistrationSchema } from "@/lib/rental-validation";
 
@@ -25,7 +29,7 @@ export async function POST(request: Request) {
   }
 
   const email = parsed.data.email.toLowerCase();
-  const ip = request.headers.get("x-real-ip")?.trim();
+  const ip = getTrustedClientAddress(request);
   try {
     const emailAllowed = await consumeRateLimit(
       createRateLimitKey("renter-registration-email", email),

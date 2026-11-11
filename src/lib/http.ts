@@ -8,6 +8,27 @@ function normalizeOrigin(value: string | null | undefined): string | null {
   }
 }
 
+export function getTrustedClientAddress(request: Request): string | null {
+  const trustedProxy =
+    process.env.AUTH_TRUST_PROXY === "true" ||
+    process.env.AUTH_TRUST_HOST === "true";
+
+  if (!trustedProxy) {
+    return null;
+  }
+
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const leftMostIp = forwardedFor.split(",")[0]?.trim();
+    if (leftMostIp) {
+      return leftMostIp;
+    }
+  }
+
+  const realIp = request.headers.get("x-real-ip")?.trim();
+  return realIp || null;
+}
+
 /**
  * Rejects cross-origin state-changing requests.
  *

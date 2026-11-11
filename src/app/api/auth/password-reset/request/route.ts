@@ -3,7 +3,7 @@ import { getPrisma } from "@/lib/prisma";
 import { consumeRateLimit, createRateLimitKey } from "@/lib/auth/rate-limit";
 import { issuePasswordResetToken } from "@/lib/auth/password-reset";
 import { EmailDeliveryError, sendPasswordResetEmail } from "@/lib/auth/email";
-import { isSameOriginRequest } from "@/lib/http";
+import { getTrustedClientAddress, isSameOriginRequest } from "@/lib/http";
 
 const requestSchema = z.object({
   email: z.string().trim().email().max(254),
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     3,
     60 * 60 * 1000,
   );
-  const clientAddress = request.headers.get("x-real-ip")?.trim();
+  const clientAddress = getTrustedClientAddress(request);
   const addressAllowed = clientAddress
     ? await consumeRateLimit(
         createRateLimitKey("password-reset-ip", clientAddress),

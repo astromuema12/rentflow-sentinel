@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { getPrisma } from "@/lib/prisma";
+import { getTrustedClientAddress } from "@/lib/http";
 import { consumeRateLimit, createRateLimitKey } from "./rate-limit";
 
 const credentialsSchema = z.object({
@@ -25,7 +26,7 @@ export async function authorizeCredentials(
     createRateLimitKey("login", email),
     10,
   );
-  const clientAddress = request.headers.get("x-real-ip")?.trim();
+  const clientAddress = getTrustedClientAddress(request);
   const addressAllowed = clientAddress
     ? await consumeRateLimit(createRateLimitKey("login-ip", clientAddress), 100)
     : true;

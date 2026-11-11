@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { consumePasswordResetToken } from "@/lib/auth/password-reset";
 import { consumeRateLimit, createRateLimitKey } from "@/lib/auth/rate-limit";
-import { isSameOriginRequest } from "@/lib/http";
+import { getTrustedClientAddress, isSameOriginRequest } from "@/lib/http";
 
 const confirmSchema = z.object({
   token: z.string().min(32).max(128),
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const clientAddress = request.headers.get("x-real-ip")?.trim();
+  const clientAddress = getTrustedClientAddress(request);
   if (clientAddress) {
     const allowed = await consumeRateLimit(
       createRateLimitKey("password-reset-confirm-ip", clientAddress),

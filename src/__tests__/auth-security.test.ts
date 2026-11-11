@@ -91,6 +91,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
   process.env.AUTH_SECRET = "test-secret-with-adequate-randomness";
+  process.env.AUTH_TRUST_PROXY = "false";
+  process.env.AUTH_TRUST_HOST = "false";
   mocks.getPrisma.mockReturnValue(database);
   mocks.consumeRateLimit.mockResolvedValue(true);
   mocks.createRateLimitKey.mockImplementation(
@@ -383,6 +385,75 @@ describe("server authentication and organization authorization", () => {
 
     expect(response.status).toBe(201);
     expect(database.user.create).toHaveBeenCalled();
+  });
+
+  it("ignores spoofed client IP headers unless a trusted proxy is configured", async () => {
+    const request = new Request("http://localhost:3000/api/auth", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-real-ip": "203.0.113.99",
+      },
+      body: JSON.stringify({
+        email: "person@example.test",
+        password: "correct-password",
+      }),
+    });
+
+    database.user.findUnique.mockResolvedValue({
+      id: "user-a",
+      email: "person@example.test",
+      passwordHash: await bcrypt.hash("correct-password", 4),
+      isActive: true,
+      sessionVersion: 4,
+      firstName: "Rent",
+      lastName: "Manager",
+    });
+
+    await authorizeCredentials(
+      { email: "Person@Example.test", password: "correct-password" },
+      request,
+    );
+
+    expect(mocks.createRateLimitKey).not.toHaveBeenCalledWith(
+      "login-ip",
+      "203.0.113.99",
+    );
+  });
+
+  it("trusts client IP headers only when the proxy trust flag is enabled", async () => {
+    process.env.AUTH_TRUST_PROXY = "true";
+    const request = new Request("http://localhost:3000/api/auth", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-forwarded-for": "203.0.113.99, 10.0.0.8",
+      },
+      body: JSON.stringify({
+        email: "person@example.test",
+        password: "correct-password",
+      }),
+    });
+
+    database.user.findUnique.mockResolvedValue({
+      id: "user-a",
+      email: "person@example.test",
+      passwordHash: await bcrypt.hash("correct-password", 4),
+      isActive: true,
+      sessionVersion: 4,
+      firstName: "Rent",
+      lastName: "Manager",
+    });
+
+    await authorizeCredentials(
+      { email: "Person@Example.test", password: "correct-password" },
+      request,
+    );
+
+    expect(mocks.createRateLimitKey).toHaveBeenCalledWith(
+      "login-ip",
+      "203.0.113.99",
+    );
   });
 
   it("rejects cross-origin account registration", async () => {
