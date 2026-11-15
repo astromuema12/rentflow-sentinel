@@ -80,10 +80,13 @@ export async function requireOrganizationAccess(
         userId: user.id,
       },
     },
-    select: { role: true },
+    select: {
+      role: true,
+      organization: { select: { isActive: true } },
+    },
   });
 
-  if (!membership) {
+  if (!membership || !membership.organization.isActive) {
     throw new AuthorizationError(404);
   }
 

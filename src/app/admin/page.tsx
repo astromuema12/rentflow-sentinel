@@ -20,23 +20,31 @@ export default async function PlatformAdminPage() {
     throw error;
   }
 
+  const recentCutoff = new Date();
+  recentCutoff.setUTCDate(recentCutoff.getUTCDate() - 30);
   const prisma = getPrisma();
   const [
     accounts,
     listings,
     invitations,
+    organizations,
+    auditEvents,
     userCount,
     renterCount,
     landlordCount,
     publishedCount,
     reviewCount,
     organizationCount,
+    activeOrganizationCount,
     savedPropertyCount,
     enquiryStatusGroups,
     respondedEnquiryCount,
     revenueGroups,
     listingStatusGroups,
     countyGroups,
+    recentAccountCount,
+    recentListingCount,
+    recentEnquiryCount,
   ] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
@@ -79,6 +87,49 @@ export default async function PlatformAdminPage() {
         lastName: true,
         createdAt: true,
         expiresAt: true,
+        organization: { select: { name: true, isActive: true } },
+      },
+    }),
+    prisma.organization.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isActive: true,
+        createdAt: true,
+        _count: { select: { memberships: true } },
+        memberships: {
+          orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+          take: 100,
+          select: {
+            id: true,
+            role: true,
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                accountType: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma.auditEvent.findMany({
+      orderBy: { occurredAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        action: true,
+        entityType: true,
+        entityId: true,
+        metadata: true,
+        occurredAt: true,
+        actor: { select: { email: true } },
         organization: { select: { name: true } },
       },
     }),
@@ -88,6 +139,7 @@ export default async function PlatformAdminPage() {
     prisma.rentalListing.count({ where: { status: "PUBLISHED" } }),
     prisma.rentalListing.count({ where: { status: "PENDING_REVIEW" } }),
     prisma.organization.count(),
+    prisma.organization.count({ where: { isActive: true } }),
     prisma.savedRentalListing.count(),
     prisma.rentalEnquiry.groupBy({
       by: ["status"],
@@ -107,6 +159,15 @@ export default async function PlatformAdminPage() {
     prisma.rentalListing.groupBy({
       by: ["county"],
       _count: { _all: true },
+    }),
+    prisma.user.count({
+      where: { createdAt: { gte: recentCutoff } },
+    }),
+    prisma.rentalListing.count({
+      where: { createdAt: { gte: recentCutoff } },
+    }),
+    prisma.rentalEnquiry.count({
+      where: { createdAt: { gte: recentCutoff } },
     }),
   ]);
   const enquiryCount = enquiryStatusGroups.reduce(
@@ -155,6 +216,12 @@ export default async function PlatformAdminPage() {
           marketplace trustworthy.
         </p>
       </section>
+      <nav className="admin-quick-nav" aria-label="Administration sections">
+        <a href="#accounts">Accounts</a>
+        <a href="#listings">Listings</a>
+        <a href="#organizations">Organizations</a>
+        <a href="#audit">Audit history</a>
+      </nav>
       <section className="admin-metric-grid" aria-label="Platform overview">
         {[
           ["All accounts", userCount],
@@ -176,7 +243,7 @@ export default async function PlatformAdminPage() {
             <p className="eyebrow">PLATFORM ANALYTICS</p>
             <h2>Marketplace performance</h2>
           </div>
-          <span>All time</span>
+          <span>All-time totals</span>
         </div>
         <div className="admin-analytics-grid">
           <article className="admin-metric">
@@ -197,6 +264,25 @@ export default async function PlatformAdminPage() {
           <article className="admin-metric">
             <span>Saved properties</span>
             <strong>{savedPropertyCount}</strong>
+          </article>
+        </div>
+        <h3 className="admin-period-heading">Last 30 days</h3>
+        <div className="admin-analytics-grid">
+          <article className="admin-metric">
+            <span>New accounts</span>
+            <strong>{recentAccountCount}</strong>
+          </article>
+          <article className="admin-metric">
+            <span>New listings</span>
+            <strong>{recentListingCount}</strong>
+          </article>
+          <article className="admin-metric">
+            <span>New enquiries</span>
+            <strong>{recentEnquiryCount}</strong>
+          </article>
+          <article className="admin-metric">
+            <span>Active organizations</span>
+            <strong>{activeOrganizationCount}</strong>
           </article>
         </div>
         <div className="admin-analytics-columns">
@@ -273,8 +359,37 @@ export default async function PlatformAdminPage() {
           firstName: invitation.firstName,
           lastName: invitation.lastName,
           organization: invitation.organization.name,
+          organizationIsActive: invitation.organization.isActive,
           createdAt: invitation.createdAt.toISOString(),
           expiresAt: invitation.expiresAt.toISOString(),
+        }))}
+        organizations={organizations.map((organization) => ({
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug,
+          isActive: organization.isActive,
+          createdAt: organization.createdAt.toISOString(),
+          memberCount: organization._count.memberships,
+          members: organization.memberships.map((membership) => ({
+            id: membership.id,
+            userId: membership.user.id,
+            email: membership.user.email,
+            name: [membership.user.firstName, membership.user.lastName]
+              .filter(Boolean)
+              .join(" "),
+            accountType: membership.user.accountType,
+            role: membership.role,
+          })),
+        }))}
+        auditEvents={auditEvents.map((event) => ({
+          id: event.id,
+          action: event.action,
+          entityType: event.entityType,
+          entityId: event.entityId,
+          metadata: event.metadata ? JSON.stringify(event.metadata) : "",
+          occurredAt: event.occurredAt.toISOString(),
+          actor: event.actor?.email ?? "System",
+          organization: event.organization?.name ?? "",
         }))}
       />
     </main>

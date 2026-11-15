@@ -92,7 +92,10 @@ function authenticate(
     emailVerifiedAt: accountType === UserAccountType.RENTER ? new Date() : null,
     sessionVersion: 4,
   });
-  database.organizationMembership.findUnique.mockResolvedValue({ role });
+  database.organizationMembership.findUnique.mockResolvedValue({
+    role,
+    organization: { isActive: true },
+  });
 }
 
 function routeParams<T extends Record<string, string>>(params: T) {
@@ -261,6 +264,18 @@ describe("server authentication and organization authorization", () => {
     ).resolves.toMatchObject({ role: MembershipRole.OPERATOR });
 
     database.organizationMembership.findUnique.mockResolvedValue(null);
+    await expect(
+      requireOrganizationAccess("org-a", MembershipRole.VIEWER),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("denies access to suspended organizations", async () => {
+    authenticate(MembershipRole.OWNER);
+    database.organizationMembership.findUnique.mockResolvedValue({
+      role: MembershipRole.OWNER,
+      organization: { isActive: false },
+    });
+
     await expect(
       requireOrganizationAccess("org-a", MembershipRole.VIEWER),
     ).rejects.toMatchObject({ status: 404 });
@@ -917,6 +932,7 @@ describe("server authentication and organization authorization", () => {
 
     database.organizationMembership.findUnique.mockResolvedValue({
       role: MembershipRole.VIEWER,
+      organization: { isActive: true },
     });
     await expect(
       requireOrganizationAccess("org-a", MembershipRole.OPERATOR),

@@ -29,7 +29,10 @@ export default async function DashboardPage() {
   }
 
   const memberships = await getPrisma().organizationMembership.findMany({
-    where: { userId: sessionUser.id },
+    where: {
+      userId: sessionUser.id,
+      organization: { is: { isActive: true } },
+    },
     select: {
       role: true,
       organization: { select: { id: true, name: true, currency: true } },

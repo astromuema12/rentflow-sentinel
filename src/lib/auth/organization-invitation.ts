@@ -48,13 +48,15 @@ export async function acceptOrganizationInvitation(
             lastName: true,
             expiresAt: true,
             acceptedAt: true,
+            organization: { select: { isActive: true } },
           },
         });
 
       if (
         !currentInvitation ||
         currentInvitation.acceptedAt ||
-        currentInvitation.expiresAt <= now
+        currentInvitation.expiresAt <= now ||
+        !currentInvitation.organization.isActive
       ) {
         return "invalid";
       }

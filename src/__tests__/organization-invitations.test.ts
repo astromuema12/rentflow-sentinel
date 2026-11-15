@@ -185,6 +185,7 @@ describe("organization owner invitations", () => {
       tokenHash: "token-hash",
       expiresAt: new Date(Date.now() + 60_000),
       acceptedAt: null,
+      organization: { isActive: true },
     };
     database.organizationInvitation.findUnique
       .mockResolvedValueOnce(invitation)
@@ -248,6 +249,34 @@ describe("organization owner invitations", () => {
     expect(database.user.create).not.toHaveBeenCalled();
   });
 
+  it("does not accept an owner invitation for a suspended organization", async () => {
+    const invitation = {
+      id: "invitation-a",
+      organizationId: "organization-a",
+      email: "owner@example.test",
+      firstName: "Amina",
+      lastName: "Njoroge",
+      tokenHash: "token-hash",
+      expiresAt: new Date(Date.now() + 60_000),
+      acceptedAt: null,
+      organization: { isActive: false },
+    };
+    database.organizationInvitation.findUnique
+      .mockResolvedValueOnce(invitation)
+      .mockResolvedValueOnce(invitation);
+
+    const response = await acceptInvitation(
+      request("/api/auth/organization-invitations/accept", {
+        token: "A".repeat(43),
+        password: "a-secure-owner-password-123",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(database.user.create).not.toHaveBeenCalled();
+    expect(database.organizationMembership.create).not.toHaveBeenCalled();
+  });
+
   it("rotates the token and audits an invitation resend", async () => {
     database.organizationInvitation.findFirst.mockResolvedValue({
       id: "invitation-a",
@@ -255,7 +284,7 @@ describe("organization owner invitations", () => {
       tokenHash: "old-hash",
       email: "owner@example.test",
       firstName: "Amina",
-      organization: { name: "North Properties" },
+      organization: { name: "North Properties", isActive: true },
     });
 
     const response = await resendInvitation(

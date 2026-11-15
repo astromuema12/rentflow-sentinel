@@ -49,7 +49,10 @@ function authenticate(role: MembershipRole = MembershipRole.OPERATOR) {
     isActive: true,
     sessionVersion: 0,
   });
-  database.organizationMembership.findUnique.mockResolvedValue({ role });
+  database.organizationMembership.findUnique.mockResolvedValue({
+    role,
+    organization: { isActive: true },
+  });
 }
 
 beforeEach(() => {

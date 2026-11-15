@@ -36,10 +36,13 @@ export async function POST(
             tokenHash: true,
             email: true,
             firstName: true,
-            organization: { select: { name: true } },
+            organization: { select: { name: true, isActive: true } },
           },
         });
-        if (!current) return null;
+        if (!current) return { kind: "not-found" as const };
+        if (!current.organization.isActive) {
+          return { kind: "inactive" as const };
+        }
 
         const updated = await transaction.organizationInvitation.updateMany({
           where: {
@@ -49,7 +52,7 @@ export async function POST(
           },
           data: { tokenHash: token.tokenHash, expiresAt: token.expiresAt },
         });
-        if (updated.count !== 1) return null;
+        if (updated.count !== 1) return { kind: "changed" as const };
 
         await transaction.auditEvent.create({
           data: {
@@ -62,15 +65,27 @@ export async function POST(
           },
         });
 
-        return current;
+        return { kind: "updated" as const, invitation: current };
       },
       { isolationLevel: "Serializable", maxWait: 10_000, timeout: 15_000 },
     );
 
-    if (!invitation) {
+    if (invitation.kind === "not-found") {
       return Response.json(
         { error: "Pending invitation not found." },
         { status: 404 },
+      );
+    }
+    if (invitation.kind === "inactive") {
+      return Response.json(
+        { error: "Reactivate the organization before resending invitations." },
+        { status: 409 },
+      );
+    }
+    if (invitation.kind === "changed") {
+      return Response.json(
+        { error: "The invitation changed. Refresh and retry." },
+        { status: 409 },
       );
     }
 
@@ -82,9 +97,9 @@ export async function POST(
 
     try {
       await sendOrganizationInvitationEmail(
-        invitation.email,
-        invitation.firstName,
-        invitation.organization.name,
+        invitation.invitation.email,
+        invitation.invitation.firstName,
+        invitation.invitation.organization.name,
         invitationUrl.toString(),
       );
     } catch (error) {
