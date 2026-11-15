@@ -690,6 +690,38 @@ describe("server authentication and organization authorization", () => {
     );
   });
 
+  it("applies a validated date window to transaction exports", async () => {
+    authenticate(MembershipRole.VIEWER);
+    database.normalizedTransaction.findMany.mockResolvedValue([]);
+
+    const response = await exportTransactions(
+      new Request("http://localhost/api?window=30d"),
+      routeParams({ organizationId: "org-a" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-disposition")).toContain(
+      "rentflow-transactions-30d.csv",
+    );
+    const query =
+      database.normalizedTransaction.findMany.mock.calls.at(-1)?.[0];
+    expect(query.where.organizationId).toBe("org-a");
+    expect(query.where.transactionDate.gte).toBeInstanceOf(Date);
+    expect(query.where.transactionDate.lt).toBeInstanceOf(Date);
+    expect(
+      query.where.transactionDate.lt.getTime() -
+        query.where.transactionDate.gte.getTime(),
+    ).toBe(30 * 24 * 60 * 60 * 1000);
+
+    database.normalizedTransaction.findMany.mockClear();
+    const invalidResponse = await exportTransactions(
+      new Request("http://localhost/api?window=invalid"),
+      routeParams({ organizationId: "org-a" }),
+    );
+    expect(invalidResponse.status).toBe(400);
+    expect(database.normalizedTransaction.findMany).not.toHaveBeenCalled();
+  });
+
   it("scopes imported-file access by organization and batch", async () => {
     authenticate(MembershipRole.VIEWER);
     database.importedSourceRecord.findFirst.mockResolvedValue(null);

@@ -12,11 +12,20 @@ export function SignInForm() {
     setError("");
 
     try {
-      await signIn("credentials", {
+      const result = await signIn("credentials", {
         email: formData.get("email"),
         password: formData.get("password"),
         redirectTo: "/dashboard",
+        redirect: false,
       });
+
+      if (result?.error || !result?.url) {
+        setError("Sign-in failed. Check your details and try again.");
+        setPending(false);
+        return;
+      }
+
+      window.location.assign(result.url);
     } catch {
       setError("Sign-in failed. Check your details and try again.");
       setPending(false);

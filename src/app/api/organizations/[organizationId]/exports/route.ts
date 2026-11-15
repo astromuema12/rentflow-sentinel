@@ -3,6 +3,11 @@ import {
   authorizationErrorResponse,
   requireOrganizationAccess,
 } from "@/lib/auth/authorization";
+import {
+  getAnalyticsWindow,
+  isAnalyticsRange,
+  type AnalyticsRange,
+} from "@/lib/analytics";
 import { MembershipRole } from "@prisma/client";
 
 type ExportValue = string | number | null | undefined;
@@ -20,15 +25,38 @@ function csvCell(value: ExportValue, numeric = false): string {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ organizationId: string }> },
 ) {
   try {
     const { organizationId } = await params;
     await requireOrganizationAccess(organizationId, MembershipRole.VIEWER);
 
+    const requestedWindow = new URL(request.url).searchParams.get("window");
+    let selectedWindow: AnalyticsRange = "all";
+    if (requestedWindow) {
+      if (!isAnalyticsRange(requestedWindow)) {
+        return Response.json(
+          { error: "Invalid export date range." },
+          { status: 400 },
+        );
+      }
+      selectedWindow = requestedWindow;
+    }
+
+    const window = getAnalyticsWindow(selectedWindow, new Date());
     const transactions = await getPrisma().normalizedTransaction.findMany({
-      where: { organizationId },
+      where: {
+        organizationId,
+        ...(window.start
+          ? {
+              transactionDate: {
+                gte: window.start,
+                lt: window.end,
+              },
+            }
+          : {}),
+      },
       select: {
         transactionDate: true,
         type: true,
@@ -72,8 +100,9 @@ export async function GET(
     return new Response(lines.join("\r\n"), {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition":
-          'attachment; filename="rentflow-transactions.csv"',
+        "Content-Disposition": requestedWindow
+          ? `attachment; filename="rentflow-transactions-${selectedWindow}.csv"`
+          : 'attachment; filename="rentflow-transactions.csv"',
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
       },
