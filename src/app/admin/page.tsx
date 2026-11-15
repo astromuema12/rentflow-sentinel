@@ -24,6 +24,7 @@ export default async function PlatformAdminPage() {
   const [
     accounts,
     listings,
+    invitations,
     userCount,
     renterCount,
     landlordCount,
@@ -65,6 +66,20 @@ export default async function PlatformAdminPage() {
         organization: { select: { name: true } },
         createdBy: { select: { email: true } },
         _count: { select: { savedBy: true, enquiries: true } },
+      },
+    }),
+    prisma.organizationInvitation.findMany({
+      where: { acceptedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        createdAt: true,
+        expiresAt: true,
+        organization: { select: { name: true } },
       },
     }),
     prisma.user.count(),
@@ -251,6 +266,15 @@ export default async function PlatformAdminPage() {
           createdBy: listing.createdBy.email,
           savedCount: listing._count.savedBy,
           enquiryCount: listing._count.enquiries,
+        }))}
+        invitations={invitations.map((invitation) => ({
+          id: invitation.id,
+          email: invitation.email,
+          firstName: invitation.firstName,
+          lastName: invitation.lastName,
+          organization: invitation.organization.name,
+          createdAt: invitation.createdAt.toISOString(),
+          expiresAt: invitation.expiresAt.toISOString(),
         }))}
       />
     </main>

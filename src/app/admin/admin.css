@@ -281,6 +281,49 @@
   cursor: pointer;
 }
 
+.admin-organization-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.admin-organization-form label {
+  display: grid;
+  gap: 6px;
+  color: #39483f;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.admin-organization-form input {
+  min-height: 38px;
+  border: 1px solid #dfe7e1;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #202b25;
+  font: inherit;
+}
+
+.admin-organization-form button {
+  align-self: end;
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  background: #245d43;
+  padding: 0 12px;
+  color: white;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-organization-form button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .listing-status {
   display: inline-block;
   border-radius: 20px;
@@ -318,6 +361,10 @@
   }
 
   .admin-analytics-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-organization-form {
     grid-template-columns: minmax(0, 1fr);
   }
 

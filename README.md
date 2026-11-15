@@ -55,7 +55,7 @@ Never put database URLs, `AUTH_SECRET`, or email API keys in Git, client-side `N
 ## Account types and access
 
 - Renters can create an account at `/register`. Passwords are hashed with bcrypt; registration is rate limited and creates only `RENTER` accounts.
-- Landlord/property-partner accounts remain organization-provisioned. Existing users keep the safe migration default of `LANDLORD`; their `OWNER`, `ADMIN`, `OPERATOR`, or `VIEWER` membership continues to limit access within each organization.
+- Platform admins can create an organization and invite its first landlord owner from `/admin`. The owner receives a one-time email link, valid for seven days, to create their account; the invitation is stored as a hash, can be resent from the admin panel, and is consumed atomically with owner membership creation. Existing users keep the safe migration default of `LANDLORD`; their `OWNER`, `ADMIN`, `OPERATOR`, or `VIEWER` membership continues to limit access within each organization.
 - `PLATFORM_ADMIN` is a distinct global account type. Organization owners and organization admins do not automatically receive platform access. After applying the rental migration, an authorized operator can promote a specifically verified account using a protected database session:
 
   ```sql
