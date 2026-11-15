@@ -43,16 +43,17 @@ enum UserAccountType {
 }
 
 model User {
-  id             String          @id @default(cuid())
-  email          String          @unique
-  passwordHash   String
-  firstName      String?
-  lastName       String?
-  accountType    UserAccountType @default(LANDLORD)
-  isActive       Boolean         @default(true)
-  sessionVersion Int             @default(0)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id              String          @id @default(cuid())
+  email           String          @unique
+  passwordHash    String
+  firstName       String?
+  lastName        String?
+  accountType     UserAccountType @default(LANDLORD)
+  isActive        Boolean         @default(true)
+  emailVerifiedAt DateTime?
+  sessionVersion  Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   memberships         OrganizationMembership[]
   reviewDecisions     HumanReviewDecision[]
@@ -85,6 +86,20 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expiresAt])
+}
+
+model RenterEmailVerificationToken {
+  id         String    @id @default(cuid())
+  email      String
+  firstName  String
+  lastName   String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([email, consumedAt])
   @@index([expiresAt])
 }
 

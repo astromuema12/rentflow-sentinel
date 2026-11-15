@@ -33,6 +33,7 @@ export async function requireAuthenticatedUser() {
       lastName: true,
       accountType: true,
       isActive: true,
+      emailVerifiedAt: true,
       sessionVersion: true,
     },
   });
@@ -53,7 +54,11 @@ export async function requireAccountType(accountType: UserAccountType) {
 }
 
 export async function requireRenter() {
-  return requireAccountType(UserAccountType.RENTER);
+  const user = await requireAccountType(UserAccountType.RENTER);
+  if (!user.emailVerifiedAt) {
+    throw new AuthorizationError(403);
+  }
+  return user;
 }
 
 export async function requirePlatformAdmin() {

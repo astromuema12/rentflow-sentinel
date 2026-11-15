@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   getPrisma: vi.fn(),
   consumeRateLimit: vi.fn(),
   createRateLimitKey: vi.fn(),
+  sendRenterVerificationEmail: vi.fn(),
 }));
 
 vi.mock("@/auth", () => ({ auth: mocks.auth }));
@@ -12,6 +13,10 @@ vi.mock("@/lib/prisma", () => ({ getPrisma: mocks.getPrisma }));
 vi.mock("@/lib/auth/rate-limit", () => ({
   consumeRateLimit: mocks.consumeRateLimit,
   createRateLimitKey: mocks.createRateLimitKey,
+}));
+vi.mock("@/lib/auth/email", () => ({
+  EmailDeliveryError: class EmailDeliveryError extends Error {},
+  sendRenterVerificationEmail: mocks.sendRenterVerificationEmail,
 }));
 
 import bcrypt from "bcryptjs";
@@ -56,6 +61,12 @@ const database = {
     findUnique: vi.fn(),
     updateMany: vi.fn(),
   },
+  renterEmailVerificationToken: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    deleteMany: vi.fn(),
+    updateMany: vi.fn(),
+  },
   auditEvent: { create: vi.fn() },
   rentalListing: {
     findFirst: vi.fn(),
@@ -78,6 +89,7 @@ function authenticate(
     email: "a@example.test",
     accountType,
     isActive: true,
+    emailVerifiedAt: accountType === UserAccountType.RENTER ? new Date() : null,
     sessionVersion: 4,
   });
   database.organizationMembership.findUnique.mockResolvedValue({ role });
@@ -95,14 +107,22 @@ beforeEach(() => {
   process.env.AUTH_TRUST_HOST = "false";
   mocks.getPrisma.mockReturnValue(database);
   mocks.consumeRateLimit.mockResolvedValue(true);
+  mocks.sendRenterVerificationEmail.mockResolvedValue(undefined);
   mocks.createRateLimitKey.mockImplementation(
     (scope: string, value: string) => `${scope}:${value}`,
   );
+  database.user.findUnique.mockResolvedValue(null);
   database.$transaction.mockImplementation(
     async (operation: (transaction: typeof database) => unknown) =>
       operation(database),
   );
   database.auditEvent.create.mockResolvedValue({ id: "audit-1" });
+  database.renterEmailVerificationToken.create.mockResolvedValue({
+    id: "verification-1",
+  });
+  database.renterEmailVerificationToken.deleteMany.mockResolvedValue({
+    count: 0,
+  });
 });
 
 describe("server authentication and organization authorization", () => {
@@ -268,6 +288,20 @@ describe("server authentication and organization authorization", () => {
     });
   });
 
+  it("denies renter access until email ownership is verified", async () => {
+    authenticate(MembershipRole.OWNER, UserAccountType.RENTER);
+    database.user.findUnique.mockResolvedValue({
+      id: "user-a",
+      email: "a@example.test",
+      accountType: UserAccountType.RENTER,
+      isActive: true,
+      emailVerifiedAt: null,
+      sessionVersion: 4,
+    });
+
+    await expect(requireRenter()).rejects.toMatchObject({ status: 403 });
+  });
+
   it("saves only published homes to the signed-in renter's account", async () => {
     authenticate(MembershipRole.VIEWER, UserAccountType.RENTER);
     database.rentalListing.findFirst.mockResolvedValue({ id: "listing-a" });
@@ -305,8 +339,7 @@ describe("server authentication and organization authorization", () => {
     expect(denied.status).toBe(403);
   });
 
-  it("creates renter accounts with renter-only access", async () => {
-    database.user.create.mockResolvedValue({ id: "new-renter" });
+  it("requires email verification before creating a renter account", async () => {
     const response = await registerRenter(
       new Request("http://localhost/api/auth/renter-registration", {
         method: "POST",
@@ -316,30 +349,33 @@ describe("server authentication and organization authorization", () => {
         },
         body: JSON.stringify({
           email: "Tenant@Example.test",
-          password: "a-secure-renter-password",
           firstName: "Amina",
           lastName: "Njoroge",
         }),
       }),
     );
 
-    expect(response.status).toBe(201);
-    expect(database.user.create).toHaveBeenCalledWith(
+    expect(response.status).toBe(202);
+    expect(database.user.create).not.toHaveBeenCalled();
+    expect(database.renterEmailVerificationToken.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           email: "tenant@example.test",
-          accountType: UserAccountType.RENTER,
+          firstName: "Amina",
+          lastName: "Njoroge",
+          tokenHash: expect.any(String),
         }),
       }),
     );
-    expect(database.user.create.mock.calls[0][0].data.passwordHash).not.toBe(
-      "a-secure-renter-password",
+    expect(mocks.sendRenterVerificationEmail).toHaveBeenCalledWith(
+      "tenant@example.test",
+      "Amina",
+      expect.stringMatching(/^http:\/\/localhost:3000\/verify-email\?/),
     );
   });
 
-  it("creates renter accounts when the configured app URL differs from the live origin", async () => {
+  it("sends verification links when the configured app URL differs from the live origin", async () => {
     process.env.NEXT_PUBLIC_APP_URL = "https://production.example";
-    database.user.create.mockResolvedValue({ id: "new-renter" });
 
     const response = await registerRenter(
       new Request(
@@ -352,7 +388,6 @@ describe("server authentication and organization authorization", () => {
           },
           body: JSON.stringify({
             email: "renter@example.test",
-            password: "a-secure-renter-password",
             firstName: "Amina",
             lastName: "Njoroge",
           }),
@@ -360,13 +395,12 @@ describe("server authentication and organization authorization", () => {
       ),
     );
 
-    expect(response.status).toBe(201);
-    expect(database.user.create).toHaveBeenCalled();
+    expect(response.status).toBe(202);
+    expect(database.user.create).not.toHaveBeenCalled();
+    expect(mocks.sendRenterVerificationEmail).toHaveBeenCalled();
   });
 
   it("accepts a same-origin registration when the browser omits the Origin header", async () => {
-    database.user.create.mockResolvedValue({ id: "new-renter" });
-
     const response = await registerRenter(
       new Request("http://localhost:3000/api/auth/renter-registration", {
         method: "POST",
@@ -376,15 +410,14 @@ describe("server authentication and organization authorization", () => {
         },
         body: JSON.stringify({
           email: "renter@example.test",
-          password: "a-secure-renter-password",
           firstName: "Amina",
           lastName: "Njoroge",
         }),
       }),
     );
 
-    expect(response.status).toBe(201);
-    expect(database.user.create).toHaveBeenCalled();
+    expect(response.status).toBe(202);
+    expect(database.user.create).not.toHaveBeenCalled();
   });
 
   it("ignores spoofed client IP headers unless a trusted proxy is configured", async () => {
@@ -610,6 +643,27 @@ describe("server authentication and organization authorization", () => {
         new Request("http://localhost/api/auth"),
       ),
     ).toBeNull();
+  });
+
+  it("does not authenticate renters before email verification", async () => {
+    database.user.findUnique.mockResolvedValue({
+      id: "user-a",
+      email: "person@example.test",
+      passwordHash: await bcrypt.hash("correct-password", 4),
+      accountType: UserAccountType.RENTER,
+      isActive: true,
+      emailVerifiedAt: null,
+      sessionVersion: 4,
+      firstName: "Rent",
+      lastName: "Manager",
+    });
+
+    await expect(
+      authorizeCredentials(
+        { email: "person@example.test", password: "correct-password" },
+        new Request("http://localhost/api/auth"),
+      ),
+    ).resolves.toBeNull();
   });
 
   it("rejects invalid and expired password-reset tokens without changing accounts", async () => {

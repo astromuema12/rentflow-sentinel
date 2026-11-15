@@ -1,6 +1,6 @@
 export class EmailDeliveryError extends Error {
   constructor() {
-    super("Password reset email could not be delivered.");
+    super("Email could not be delivered.");
     this.name = "EmailDeliveryError";
   }
 }
@@ -61,5 +61,17 @@ export async function sendOrganizationInvitationEmail(
     email,
     `Join ${organizationName} on RentFlow Sentinel`,
     `Hello ${firstName},\n\nYou have been invited to manage ${organizationName} on RentFlow Sentinel. To accept the invitation and set up your landlord account, open this link within 7 days: ${invitationUrl}\n\nIf you were not expecting this invitation, you can ignore this message.`,
+  );
+}
+
+export async function sendRenterVerificationEmail(
+  email: string,
+  firstName: string,
+  verificationUrl: string,
+): Promise<void> {
+  await sendEmail(
+    email,
+    "Verify your RentFlow Sentinel account",
+    `Hello ${firstName},\n\nVerify that this email address belongs to you and choose a password for your RentFlow Sentinel renter account by opening this link within 24 hours: ${verificationUrl}\n\nIf you did not request this, you can ignore this message.`,
   );
 }

@@ -41,7 +41,9 @@ export async function authorizeCredentials(
       id: true,
       email: true,
       passwordHash: true,
+      accountType: true,
       isActive: true,
+      emailVerifiedAt: true,
       sessionVersion: true,
       firstName: true,
       lastName: true,
@@ -53,7 +55,12 @@ export async function authorizeCredentials(
     user?.passwordHash ?? DUMMY_PASSWORD_HASH,
   );
 
-  if (!user || !user.isActive || !passwordMatches) {
+  if (
+    !user ||
+    !user.isActive ||
+    !passwordMatches ||
+    (user.accountType === "RENTER" && !user.emailVerifiedAt)
+  ) {
     return null;
   }
 

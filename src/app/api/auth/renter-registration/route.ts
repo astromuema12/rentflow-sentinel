@@ -1,5 +1,4 @@
-import bcrypt from "bcryptjs";
-import { Prisma, UserAccountType } from "@prisma/client";
+import { UserAccountType } from "@prisma/client";
 import { authorizationErrorResponse } from "@/lib/auth/authorization";
 import { consumeRateLimit, createRateLimitKey } from "@/lib/auth/rate-limit";
 import {
@@ -9,6 +8,16 @@ import {
 } from "@/lib/http";
 import { getPrisma } from "@/lib/prisma";
 import { renterRegistrationSchema } from "@/lib/rental-validation";
+import {
+  EmailDeliveryError,
+  sendRenterVerificationEmail,
+} from "@/lib/auth/email";
+import { createRenterVerificationToken } from "@/lib/auth/renter-email-verification";
+
+const genericResponse = {
+  message:
+    "If this address can be registered, we’ll email a link to verify it and choose a password.",
+};
 
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) {
@@ -48,27 +57,71 @@ export async function POST(request: Request) {
       );
     }
 
-    await getPrisma().user.create({
-      data: {
-        email,
-        passwordHash: await bcrypt.hash(parsed.data.password, 12),
-        firstName: parsed.data.firstName,
-        lastName: parsed.data.lastName,
-        accountType: UserAccountType.RENTER,
+    const prisma = getPrisma();
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        accountType: true,
+        isActive: true,
+        emailVerifiedAt: true,
       },
-      select: { id: true },
     });
-    return Response.json({ created: true }, { status: 201 });
-  } catch (error) {
+
     if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
+      existingUser &&
+      (existingUser.accountType !== UserAccountType.RENTER ||
+        !existingUser.isActive ||
+        existingUser.emailVerifiedAt)
     ) {
+      return Response.json(genericResponse, { status: 202 });
+    }
+
+    const verification = createRenterVerificationToken();
+    await prisma.$transaction(async (transaction) => {
+      await transaction.renterEmailVerificationToken.deleteMany({
+        where: { email, consumedAt: null },
+      });
+      await transaction.renterEmailVerificationToken.create({
+        data: {
+          email,
+          firstName: parsed.data.firstName,
+          lastName: parsed.data.lastName,
+          tokenHash: verification.tokenHash,
+          expiresAt: verification.expiresAt,
+        },
+      });
+    });
+
+    const verificationUrl = new URL(
+      "/verify-email",
+      process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin,
+    );
+    verificationUrl.searchParams.set("token", verification.token);
+
+    try {
+      await sendRenterVerificationEmail(
+        email,
+        parsed.data.firstName,
+        verificationUrl.toString(),
+      );
+    } catch (error) {
+      if (!(error instanceof EmailDeliveryError)) {
+        console.error(
+          "Renter verification email could not be delivered.",
+          error,
+        );
+      }
       return Response.json(
-        { error: "An account with that email already exists." },
-        { status: 409 },
+        {
+          error:
+            "The verification email could not be delivered. Retry the request to send a new link.",
+        },
+        { status: 503 },
       );
     }
+
+    return Response.json(genericResponse, { status: 202 });
+  } catch (error) {
     return authorizationErrorResponse(error);
   }
 }

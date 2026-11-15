@@ -7,6 +7,11 @@ export function RenterRegisterForm() {
   const [error, setError] = useState("");
   const [created, setCreated] = useState(false);
   const [pending, setPending] = useState(false);
+  const [registeredDetails, setRegisteredDetails] = useState<{
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null>(null);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,9 +29,38 @@ export function RenterRegisterForm() {
         setError(result.error ?? "Your account could not be created.");
         return;
       }
+      setRegisteredDetails({
+        firstName: String(formData.get("firstName")),
+        lastName: String(formData.get("lastName")),
+        email: String(formData.get("email")).trim().toLowerCase(),
+      });
       setCreated(true);
     } catch {
-      setError("Your account could not be created. Check your connection.");
+      setError("The verification request failed. Check your connection.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function resendVerification() {
+    if (!registeredDetails) return;
+
+    setError("");
+    setPending(true);
+    try {
+      const response = await fetch("/api/auth/renter-registration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(registeredDetails),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setError(result.error ?? "The verification email could not be sent.");
+      }
+    } catch {
+      setError(
+        "The verification email could not be sent. Check your connection.",
+      );
     } finally {
       setPending(false);
     }
@@ -34,11 +68,27 @@ export function RenterRegisterForm() {
 
   if (created) {
     return (
-      <div className="registration-success" role="status">
-        <h2>You’re ready to start looking.</h2>
-        <p>Your renter account is set up. Sign in to browse available homes.</p>
+      <div className="registration-success">
+        <h2>Check your inbox</h2>
+        <p role="status">
+          If the address can be registered, we sent a link to verify it and
+          choose a password. The link expires after 24 hours.
+        </p>
+        {error ? (
+          <p className="auth-error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <button
+          className="auth-submit"
+          disabled={pending}
+          onClick={resendVerification}
+          type="button"
+        >
+          {pending ? "Sending..." : "Resend verification email"}
+        </button>
         <Link className="auth-submit" href="/sign-in">
-          Go to sign in
+          Back to sign in
         </Link>
       </div>
     );
@@ -58,16 +108,10 @@ export function RenterRegisterForm() {
         required
         type="email"
       />
-      <label htmlFor="password">Password</label>
-      <input
-        autoComplete="new-password"
-        id="password"
-        minLength={10}
-        name="password"
-        required
-        type="password"
-      />
-      <p className="auth-hint">Use at least 10 characters.</p>
+      <p className="auth-hint">
+        We’ll email a one-time link so you can verify your address and create a
+        password.
+      </p>
       {error ? (
         <p className="auth-error" role="alert">
           {error}

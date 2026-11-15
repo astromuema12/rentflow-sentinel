@@ -85,6 +85,7 @@ export async function acceptOrganizationInvitation(
           lastName: currentInvitation.lastName,
           passwordHash,
           accountType: "LANDLORD",
+          emailVerifiedAt: now,
         },
         select: { id: true },
       });

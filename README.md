@@ -46,7 +46,7 @@ For Neon, set `DATABASE_URL` to its pooled connection string for the app. Set `D
    - `AUTH_TRUST_HOST`: set to `true` only behind a trusted proxy (e.g. Vercel) that overwrites host and client-IP forwarding headers. Auth.js v5 also reads this env signal; keep it explicit in deployment config.
    - `NEXT_PUBLIC_APP_URL`: the deployed site's canonical HTTPS URL.
    - `NEXT_PUBLIC_APP_NAME`: `RentFlow Sentinel`.
-   - `RESEND_API_KEY` and `EMAIL_FROM`: add only after configuring an authorized Resend sender; required for password-reset email.
+   - `RESEND_API_KEY` and `EMAIL_FROM`: add only after configuring an authorized Resend sender; required for renter email verification, organization invitations, and password-reset email.
 4. Before serving the first deployment, apply the committed database migrations from a trusted local machine with `.env.local` configured: `npm run db:migrate`. Verify the command succeeds before promoting an account to `PLATFORM_ADMIN`.
 5. Deploy from Vercel and check the deployment logs and site. A successful build alone does not apply database migrations or create a platform-admin account.
 
@@ -54,7 +54,7 @@ Never put database URLs, `AUTH_SECRET`, or email API keys in Git, client-side `N
 
 ## Account types and access
 
-- Renters can create an account at `/register`. Passwords are hashed with bcrypt; registration is rate limited and creates only `RENTER` accounts.
+- Renters can start registration at `/register`; they must verify control of their email and choose a password from a one-time email link before a `RENTER` account is created. Verification tokens are hashed, expire after 24 hours, and are rate limited. Renter-only pages and endpoints reject accounts whose email is unverified. Existing renter accounts without a verified-email timestamp must complete verification; doing so replaces their previous password to prevent an unverified registration from claiming someone else’s address.
 - Platform admins can create an organization and invite its first landlord owner from `/admin`. The owner receives a one-time email link, valid for seven days, to create their account; the invitation is stored as a hash, can be resent from the admin panel, and is consumed atomically with owner membership creation. Existing users keep the safe migration default of `LANDLORD`; their `OWNER`, `ADMIN`, `OPERATOR`, or `VIEWER` membership continues to limit access within each organization.
 - `PLATFORM_ADMIN` is a distinct global account type. Organization owners and organization admins do not automatically receive platform access. After applying the rental migration, an authorized operator can promote a specifically verified account using a protected database session:
 
