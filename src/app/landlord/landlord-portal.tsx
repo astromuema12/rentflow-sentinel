@@ -430,7 +430,7 @@ export function LandlordPortal({
                   />
                 </label>
               </div>
-              <div className="landlord-form-row">
+              <div className="landlord-form-row landlord-form-row--pricing">
                 <label>
                   Price (KES)
                   <input
