@@ -42,15 +42,23 @@ export function LegalDocument({
         <p className="market-kicker">RENTFLOW KENYA · LEGAL</p>
         <h1>{title}</h1>
         <p className="legal-summary">{summary}</p>
-        <p className="legal-updated">Last updated: 28 October 2026</p>
+        <p className="legal-updated">Last updated: 18 November 2026</p>
 
         <aside className="legal-review-notice">
           <strong>Publication check required</strong>
           <p>
             This draft reflects the current RentFlow feature set and is not
             legal advice. Before public launch, RentFlow must publish its
-            verified legal entity and contact details and have these terms
-            reviewed by a Kenyan legal professional.
+            registered legal entity and address, document its actual data
+            processors and retention/deletion practices, and have these policies
+            reviewed by Kenyan counsel.
+          </p>
+          <p>
+            Contact RentFlow at{" "}
+            <a href="mailto:musauedwin2004@gmail.com">
+              musauedwin2004@gmail.com
+            </a>{" "}
+            or <a href="tel:+254797954565">+254797954565</a>.
           </p>
         </aside>
 

@@ -51,6 +51,12 @@ describe("public legal pages", () => {
       expect(
         screen.getByText("Publication check required"),
       ).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: "musauedwin2004@gmail.com" }),
+      ).toHaveAttribute("href", "mailto:musauedwin2004@gmail.com");
+      expect(
+        screen.getByRole("link", { name: "+254797954565" }),
+      ).toHaveAttribute("href", "tel:+254797954565");
 
       const legalNavigation = screen.getByRole("navigation", {
         name: "Legal navigation",

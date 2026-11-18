@@ -31,7 +31,7 @@ const sections: LegalSection[] = [
   {
     heading: "Updates and contact",
     paragraphs: [
-      "This notice describes the current application configuration and may change as the service evolves. A verified legal and privacy contact must be published before launch; refer to the Privacy notice for details.",
+      "This notice describes the current application configuration and may change as the service evolves. Contact RentFlow using the details above. See the Privacy notice for the remaining privacy information that must be completed before public launch.",
     ],
   },
 ];

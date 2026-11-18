@@ -74,7 +74,7 @@ const sections: LegalSection[] = [
     heading: "Suspension, changes, and governing law",
     paragraphs: [
       "RentFlow may suspend an account or listing for a suspected breach, safety concern, or legal requirement. We will update these terms when the service or law changes and show a revised update date. Continued use after an update means the revised terms apply to future use, subject to applicable law.",
-      "These terms are intended to be governed by the laws of Kenya, subject to any mandatory consumer rights and dispute procedures that apply. Before launch, RentFlow must publish its verified legal entity, physical address, and working legal-notice contact details.",
+      "These terms are intended to be governed by the laws of Kenya, subject to any mandatory consumer rights and dispute procedures that apply. Contact channels for legal notices are shown above. Before launch, RentFlow must also publish its registered legal entity and physical address.",
     ],
   },
 ];

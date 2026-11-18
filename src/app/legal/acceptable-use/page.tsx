@@ -43,7 +43,7 @@ const sections: LegalSection[] = [
     heading: "Enforcement and reports",
     paragraphs: [
       "RentFlow may investigate reports and restrict accounts or remove content where reasonably necessary to protect users, comply with law, or enforce these rules. Restrictions do not replace any rights or remedies available under Kenyan law.",
-      "A verified channel for reporting abuse and appealing moderation decisions must be published before public launch.",
+      "Contact RentFlow using the details above to report abuse or appeal a moderation decision. A formal process for handling and tracking reports and appeals must still be established before public launch.",
     ],
   },
 ];

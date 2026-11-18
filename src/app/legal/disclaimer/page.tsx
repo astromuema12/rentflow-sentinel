@@ -43,7 +43,7 @@ const sections: LegalSection[] = [
   {
     heading: "Report a concern",
     paragraphs: [
-      "If you encounter a suspected scam, unsafe listing, or inaccurate property information, do not proceed with payment or share further sensitive information. RentFlow must publish a verified reporting and support contact before public launch; the contact details should be added here when established.",
+      "If you encounter a suspected scam, unsafe listing, or inaccurate property information, do not proceed with payment or share further sensitive information. Contact RentFlow using the details above. A formal process for handling and tracking support and safety reports must still be established before public launch.",
     ],
   },
 ];

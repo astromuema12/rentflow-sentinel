@@ -12,7 +12,7 @@ const sections: LegalSection[] = [
   {
     heading: "Who is responsible for your information",
     paragraphs: [
-      "RentFlow provides tools for finding and managing homes for rent across Kenya. The legal identity and registered contact details of the data controller must be completed here by RentFlow before public launch. This draft is not a substitute for the notices and registrations required by Kenyan data-protection law.",
+      "RentFlow provides tools for finding and managing homes for rent across Kenya. Contact RentFlow using the details above with questions about this notice. RentFlow's registered legal identity, address, data-controller status, and any notices or registrations required by Kenyan data-protection law must still be confirmed before public launch.",
     ],
   },
   {
@@ -51,13 +51,13 @@ const sections: LegalSection[] = [
     heading: "Your privacy rights",
     paragraphs: [
       "Subject to applicable Kenyan law, you may have rights to be informed, access your personal information, request correction or deletion, object to or restrict certain processing, and complain to the Office of the Data Protection Commissioner. The availability and limits of each right depend on the circumstances and law.",
-      "A verified privacy contact and a practical way to submit and track a request must be added by RentFlow before launch. Do not send identity documents or sensitive details through a public enquiry form.",
+      "Contact RentFlow using the details above to raise a privacy question or request. Before launch, RentFlow must define and publish its request-handling, identity-check, and response-time procedures. Do not send identity documents or sensitive details through a public enquiry form.",
     ],
   },
   {
     heading: "Children and changes",
     paragraphs: [
-      "RentFlow is intended for adults arranging or managing rental housing and is not designed for children. If you believe a child has provided personal information, contact the verified privacy contact once it is published.",
+      "RentFlow is intended for adults arranging or managing rental housing and is not designed for children. If you believe a child has provided personal information, contact RentFlow using the details above.",
       "We may update this notice when the service or applicable law changes. The date at the top indicates when this text was last reviewed.",
     ],
   },

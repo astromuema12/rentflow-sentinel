@@ -46,14 +46,14 @@ const sections: LegalSection[] = [
       "Do not request a fee merely to view a home or use RentFlow.",
       "Do not pressure renters to transfer money before they have independently verified the property, provider, and written rental terms.",
       "Keep enquiries on the platform where practical and never request passwords, one-time codes, or payment-card details in a message.",
-      "Report suspected fraud, duplicate listings, unsafe content, or unauthorized property offers through a RentFlow reporting channel once that channel is published.",
+      "Report suspected fraud, duplicate listings, unsafe content, or unauthorized property offers to RentFlow using the contact details above.",
     ],
   },
   {
     heading: "Review and enforcement",
     paragraphs: [
       "Listings are subject to review before they become visible to renters. RentFlow may request changes, reject, pause, or remove a listing where it appears inaccurate, unsafe, unauthorized, unlawful, or inconsistent with these standards. Review does not guarantee a home's safety, quality, availability, or legal status.",
-      "A property provider may correct and resubmit a rejected listing. RentFlow should publish a working channel for appeals and reports before public launch.",
+      "A property provider may correct and resubmit a rejected listing. Contact RentFlow using the details above to raise a report or appeal. A formal process for handling and tracking appeals must still be established before public launch.",
     ],
   },
 ];
